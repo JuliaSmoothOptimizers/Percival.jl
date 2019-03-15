@@ -13,39 +13,40 @@ function al(nlp :: AbstractNLPModel)
 	Jx = J(x)
 
 	# penalty parameter
-	μ = 1
+	μ = 10
 	# Lagrange multiplier
 	y = cgls(Jx', gx)[1]
-
 	# tolerance
-	eta = 1e-5
+	eta = 0.5
 
-	normgL = norm(gx - Jx'*y)
+	normgL = norm(gx - Jx' * y)
 	normcx = norm(cx)
 	iter = 0
 
 	while (normgL > 1e-5 || normcx > 1e-5) && (iter < 1000)
 
-		al_nlp = ADNLPModel(x -> obj(nlp,x) - y'*c(x) + (μ/2)*dot(c(x),c(x)), x, lvar=nlp.meta.lvar, uvar=nlp.meta.uvar)
-		x, fx = ipopt(al_nlp)
+		# create subproblem
+		al_nlp = AugLagModel(nlp, y, μ)
 
-		#al_nlp = ALModel(nlp, y, μ)
-		#? = tron(al_nlp,x)
+		# solve subproblem
+		S = tron(al_nlp, x = x)
+		x = S.solution
 
 		cx = c(x)
 		gx = g(x)
 		Jx = J(x)
-
 		normcx = norm(cx)
+
 		if normcx <= eta
-			y = y - μ*cx
-			#eta =
+			#y = y - μ * cx
+			y = cgls(Jx', gx)[1]
+			eta = eta / μ^0.9
 		else
-			μ = 100*μ
-			#eta =
+			μ = 100 * μ
+			eta = 1 / μ^0.1
 		end
 
-		normgL = norm(gx - Jx'*y)
+		normgL = norm(gx - Jx' * y)
 		iter += 1
 	end
 
