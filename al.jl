@@ -6,7 +6,7 @@ using Logging, SolverTools
 
 function al(nlp :: AbstractNLPModel)
 
-  x = copy(nlp.meta.x0)
+	x = copy(nlp.meta.x0)
 	c(x) = cons(nlp, x)
 	g(x) = grad(nlp, x)
 	J(x) = jac(nlp, x)
@@ -25,50 +25,49 @@ function al(nlp :: AbstractNLPModel)
 	normcx = norm(cx)
 	iter = 0
 
-  @info log_header([:iter, :normgL, :normcx], [Int, Float64, Float64])
-  @info log_row(Any[iter, normgL, normcx])
+ 	@info log_header([:iter, :normgL, :normcx], [Int, Float64, Float64])
+	@info log_row(Any[iter, normgL, normcx])
 
-  # TODO: Add keyword arguments atol, rtol, max_eval, max_iter
-  solved = normgL ≤ 1e-5 && normcx ≤ 1e-5
-  tired = iter ≥ 1000
+	# TODO: Add keyword arguments atol, rtol, max_eval, max_iter
+	solved = normgL ≤ 1e-5 && normcx ≤ 1e-5
+	tired = iter ≥ 1000
 
-  while !(solved || tired)
+	# create initial subproblem
+	al_nlp = AugLagModel(nlp, y, μ)
 
-    # TODO: Reuse AugLagModel
-		# create subproblem
-		al_nlp = AugLagModel(nlp, y, μ)
+	while !(solved || tired)
 
 		# solve subproblem
-    S = with_logger(NullLogger()) do
-      tron(al_nlp, x = x)
-    end
+		S = with_logger(NullLogger()) do
+			tron(al_nlp, x = x)
+		end
 		x = S.solution
-
 		cx = c(x)
 		gx = g(x)
 		Jx = J(x)
 		normcx = norm(cx)
 
 		if normcx <= eta
-			y = y - μ * cx
+			al_nlp.y = al_nlp.y - al_nlp.mu * cx
 			#y = cgls(Jx', gx)[1]
-			eta = eta / μ^0.9
+			eta = eta / (al_nlp.mu)^0.9
 		else
 			μ = 100 * μ
+			al_nlp.mu  = μ
 			eta = 1 / μ^0.1
 		end
 
-    # TODO: Improve dual measure
-    gL = gx - Jx' * y
-    #project_step!(gpL, ...)
-    normgL = norm(gL)
+		# TODO: Improve dual measure
+		gL = gx - Jx' * al_nlp.y
+		#project_step!(gpL, ...)
+		normgL = norm(gL)
 		iter += 1
-    solved = normgL ≤ 1e-5 && normcx ≤ 1e-5
-    tired = iter ≥ 1000
+		solved = normgL ≤ 1e-5 && normcx ≤ 1e-5
+		tired = iter ≥ 1000
 
-    @info log_row(Any[iter, normgL, normcx])
+		@info log_row(Any[iter, normgL, normcx])
 	end
 
-  # TODO: Use GenericExecutionStats
+	# TODO: Use GenericExecutionStats
 	return x, obj(nlp,x), normgL, normcx, iter
 end
