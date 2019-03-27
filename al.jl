@@ -7,12 +7,10 @@ using Logging, SolverTools
 function al(nlp :: AbstractNLPModel)
 
 	x = copy(nlp.meta.x0)
-	c(x) = cons(nlp, x)
-	g(x) = grad(nlp, x)
-	J(x) = jac(nlp, x)
-	cx = c(x)
-	gx = g(x)
-	Jx = J(x)
+	gp = zeros(nlp.meta.nvar)
+	cx = cons(nlp, x)
+	gx = grad(nlp, x)
+	Jx = jac(nlp, x)
 
 	# penalty parameter
 	μ = 10
@@ -21,19 +19,23 @@ function al(nlp :: AbstractNLPModel)
 	# tolerance
 	eta = 0.5
 
-	normgL = norm(gx - Jx' * y)
+	# create initial subproblem
+	al_nlp = AugLagModel(nlp, y, μ)
+
+	# stationarity measure
+	gLA = grad(al_nlp, x)
+	project_step!(gp, x, -gLA, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gLA) - x
+	normgp = norm(gp)
+
 	normcx = norm(cx)
 	iter = 0
 
- 	@info log_header([:iter, :normgL, :normcx], [Int, Float64, Float64])
-	@info log_row(Any[iter, normgL, normcx])
+ 	@info log_header([:iter, :normgp, :normcx], [Int, Float64, Float64])
+	@info log_row(Any[iter, normgp, normcx])
 
 	# TODO: Add keyword arguments atol, rtol, max_eval, max_iter
-	solved = normgL ≤ 1e-5 && normcx ≤ 1e-5
+	solved = normgp ≤ 1e-5 && normcx ≤ 1e-5
 	tired = iter ≥ 1000
-
-	# create initial subproblem
-	al_nlp = AugLagModel(nlp, y, μ)
 
 	while !(solved || tired)
 
@@ -42,14 +44,11 @@ function al(nlp :: AbstractNLPModel)
 			tron(al_nlp, x = x)
 		end
 		x = S.solution
-		cx = c(x)
-		gx = g(x)
-		Jx = J(x)
+		cx = cons(nlp, x)
 		normcx = norm(cx)
 
 		if normcx <= eta
 			al_nlp.y = al_nlp.y - al_nlp.mu * cx
-			#y = cgls(Jx', gx)[1]
 			eta = eta / (al_nlp.mu)^0.9
 		else
 			μ = 100 * μ
@@ -57,17 +56,18 @@ function al(nlp :: AbstractNLPModel)
 			eta = 1 / μ^0.1
 		end
 
-		# TODO: Improve dual measure
-		gL = gx - Jx' * al_nlp.y
-		#project_step!(gpL, ...)
-		normgL = norm(gL)
+		# stationarity measure
+		gLA = grad(al_nlp, x)
+		project_step!(gp, x, -gLA, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gLA) - x
+		normgp = norm(gp)
+
 		iter += 1
-		solved = normgL ≤ 1e-5 && normcx ≤ 1e-5
+		solved = normgp ≤ 1e-5 && normcx ≤ 1e-5
 		tired = iter ≥ 1000
 
-		@info log_row(Any[iter, normgL, normcx])
+		@info log_row(Any[iter, normgp, normcx])
 	end
 
 	# TODO: Use GenericExecutionStats
-	return x, obj(nlp,x), normgL, normcx, iter
+	return x, obj(nlp,x), normgp, normcx, iter
 end
