@@ -23,8 +23,8 @@ function al(nlp :: AbstractNLPModel)
 	al_nlp = AugLagModel(nlp, y, μ)
 
 	# stationarity measure
-	gLA = grad(al_nlp, x)
-	project_step!(gp, x, -gLA, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gLA) - x
+	gL =  grad(nlp, x) - jtprod(nlp, x, y)
+	project_step!(gp, x, -gL, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gL) - x
 	normgp = norm(gp)
 
 	normcx = norm(cx)
@@ -57,8 +57,8 @@ function al(nlp :: AbstractNLPModel)
 		end
 
 		# stationarity measure
-		gLA = grad(al_nlp, x)
-		project_step!(gp, x, -gLA, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gLA) - x
+		gL = grad(nlp, x) - jtprod(nlp, x, al_nlp.y)
+		project_step!(gp, x, -gL, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gL) - x
 		normgp = norm(gp)
 
 		iter += 1
