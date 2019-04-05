@@ -4,7 +4,7 @@ using Logging, SolverTools
 
 	min f(x)  s.t.  c(x) = 0, l ≦ x ≦ u"""
 
-function al(nlp :: AbstractNLPModel)
+function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 60.0)
 
 	x = copy(nlp.meta.x0)
 	gp = zeros(nlp.meta.nvar)
@@ -26,16 +26,18 @@ function al(nlp :: AbstractNLPModel)
 	gL =  grad(nlp, x) - jtprod(nlp, x, y)
 	project_step!(gp, x, -gL, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gL) - x
 	normgp = norm(gp)
-
 	normcx = norm(cx)
+
 	iter = 0
+	start_time = time()
+	el_time = 0.0
 
  	@info log_header([:iter, :normgp, :normcx], [Int, Float64, Float64])
 	@info log_row(Any[iter, normgp, normcx])
 
-	# TODO: Add keyword arguments atol, rtol, max_eval, max_iter
+	# TODO: Add keyword arguments atol, rtol, max_eval
 	solved = normgp ≤ 1e-5 && normcx ≤ 1e-5
-	tired = iter ≥ 1000
+	tired = iter > max_iter || el_time > max_time
 
 	while !(solved || tired)
 
@@ -62,12 +64,24 @@ function al(nlp :: AbstractNLPModel)
 		normgp = norm(gp)
 
 		iter += 1
+		el_time = time() - start_time
 		solved = normgp ≤ 1e-5 && normcx ≤ 1e-5
-		tired = iter ≥ 1000
+		iter > max_iter || el_time > max_time
 
 		@info log_row(Any[iter, normgp, normcx])
 	end
 
-	# TODO: Use GenericExecutionStats
-	return x, obj(nlp,x), normgp, normcx, iter
+	if solved
+		status = :first_order
+	elseif tired
+		if iter > max_iter
+			status = :max_iter
+		end
+		if el_time > max_time
+			status = :max_time
+		end
+	end
+
+	return GenericExecutionStats(status, nlp, solution = x, objective = obj(nlp, x), dual_feas = normgp, primal_feas = normcx,
+			iter = iter, elapsed_time = el_time)
 end
