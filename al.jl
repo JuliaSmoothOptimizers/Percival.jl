@@ -4,7 +4,7 @@ using Logging, SolverTools
 
 	min f(x)  s.t.  c(x) = 0, l ≦ x ≦ u"""
 
-function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 60.0)
+function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 30.0)
 
 	x = copy(nlp.meta.x0)
 	gp = zeros(nlp.meta.nvar)
@@ -36,7 +36,7 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
 	@info log_row(Any[iter, normgp, normcx])
 
 	# TODO: Add keyword arguments atol, rtol, max_eval
-	solved = normgp ≤ 1e-5 && normcx ≤ 1e-5
+	solved = normgp ≤ 1e-8 && normcx ≤ 1e-8
 	tired = iter > max_iter || el_time > max_time
 
 	while !(solved || tired)
@@ -65,8 +65,8 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
 
 		iter += 1
 		el_time = time() - start_time
-		solved = normgp ≤ 1e-5 && normcx ≤ 1e-5
-		iter > max_iter || el_time > max_time
+		solved = normgp ≤ 1e-8 && normcx ≤ 1e-8
+		tired = iter > max_iter || el_time > max_time
 
 		@info log_row(Any[iter, normgp, normcx])
 	end
