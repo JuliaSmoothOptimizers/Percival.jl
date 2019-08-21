@@ -13,7 +13,7 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
 	Jx = jac(nlp, x)
 
 	# penalty parameter
-	μ = 10
+	μ = 10.0
 	# Lagrange multiplier
 	y = cgls(Jx', gx)[1]
 	# tolerance
@@ -36,8 +36,11 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
 	@info log_row(Any[iter, normgp, normcx])
 
 	# TODO: Add keyword arguments atol, rtol, max_eval
-	solved = normgp ≤ 1e-8 && normcx ≤ 1e-8
+	solved = normgp ≤ 1e-5 && normcx ≤ 1e-8
 	tired = iter > max_iter || el_time > max_time
+
+	#adaptive tolerance
+	#atol = 0.5
 
 	while !(solved || tired)
 
@@ -65,7 +68,7 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
 
 		iter += 1
 		el_time = time() - start_time
-		solved = normgp ≤ 1e-8 && normcx ≤ 1e-8
+		solved = normgp ≤ 1e-5 && normcx ≤ 1e-8
 		tired = iter > max_iter || el_time > max_time
 
 		@info log_row(Any[iter, normgp, normcx])
