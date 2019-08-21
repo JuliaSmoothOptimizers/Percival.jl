@@ -1,0 +1,17 @@
+name = "AugLag"
+uuid = "3737b466-c3cc-11e9-236a-fd6cc6d3d571"
+authors = ["Egmara <egmara.antunes@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+CUTEst = "1b53aba6-35b6-5f92-a507-53c67d53f819"
+JSOSolvers = "10dff2fc-5484-5881-a0e0-c90441020f8a"
+Krylov = "ba0b0d4f-ebba-5204-a429-3ac8c609bfb7"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+LinearOperators = "5c8ed15e-5a4c-59e4-a42b-c7e8811fb125"
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
+NLPModels = "a4795742-8479-5a88-8948-cc11e1c8c1a6"
+NLPModelsIpopt = "f4238b75-b362-5c4c-b852-0801c9a21d71"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+SolverTools = "b5612192-2639-5dc1-abfe-fbedd65fab29"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
