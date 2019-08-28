@@ -1,0 +1,19 @@
+language: julia
+
+os:
+ - linux
+
+julia:
+ - 1.1
+ - nightly
+
+matrix:
+ allow_failures:
+  - julia: nightly
+
+after_success:
+ - julia -e 'using Pkg; cd(Pkg.dir("AugLag")); Pkg.add("Covarage"); using Coverage; Coveralls.submit(Coveralls.process_folder())
+
+
+
+
