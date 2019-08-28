@@ -1,6 +1,8 @@
 export al
 
-using Logging, SolverTools
+using Logging, SolverTools, NLPModels
+
+using JSOSolvers, Krylov
 
 """Implementation of a augmented Lagrangian method for:
 
