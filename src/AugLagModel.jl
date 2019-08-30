@@ -92,7 +92,8 @@ function NLPModels.hess_structure!(nlp :: AugLagModel, rows :: AbstractVector{<:
     return hess_structure!(nlp.model, rows, cols) # because is the same structure of hessian of f(x)
 end
 
-function NLPModels.hess_coord(nlp :: AbstractNLPModel, x :: AbstractVector)
+function NLPModels.hess_coord(nlp :: AugLagModel, x :: AbstractVector)
+
     rows = Vector{Int}(undef, nlp.meta.nnzh)
     cols = Vector{Int}(undef, nlp.meta.nnzh)
     vals = Vector{eltype(x)}(undef, nlp.meta.nnzh)
@@ -100,7 +101,7 @@ function NLPModels.hess_coord(nlp :: AbstractNLPModel, x :: AbstractVector)
     return NLPModels.hess_coord!(nlp, x, rows, cols, vals)
 end
 
-function NLPModels.hess_coord!(nlp :: AbstractNLPModel, x :: AbstractVector, rows :: AbstractVector{<: Integer}, cols :: AbstractVector{<: Integer},
+function NLPModels.hess_coord!(nlp :: AugLagModel, x :: AbstractVector, rows :: AbstractVector{<: Integer}, cols :: AbstractVector{<: Integer},
                     vals :: AbstractVector; obj_weight :: Float64 = 1.0)
     # Hessian of auglag
     Hx = NLPModels.hess(nlp, x, obj_weight = obj_weight)
@@ -109,7 +110,7 @@ function NLPModels.hess_coord!(nlp :: AbstractNLPModel, x :: AbstractVector, row
     k = 1
     for j = 1 : nlp.meta.nvar
         for i = j : nlp.meta.nvar
-            vals[k] .= Hx[i, j]
+            vals[k] = Hx[i, j] # in place not working
             k += 1
         end
     end    
