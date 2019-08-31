@@ -36,8 +36,8 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
 	start_time = time()
 	el_time = 0.0
 
- 	@info log_header([:iter, :normgp, :normcx], [Int, Float64, Float64])
-	@info log_row(Any[iter, normgp, normcx])
+ 	@info log_header([:iter, :fx, :normgp, :normcx], [Int, Float64, Float64, Float64])
+  @info log_row(Any[iter, obj(nlp, x), normgp, normcx])
 
 	# TODO: Add keyword arguments atol, rtol, max_eval
 	solved = normgp ≤ 1e-5 && normcx ≤ 1e-8
@@ -75,7 +75,7 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
 		solved = normgp ≤ 1e-5 && normcx ≤ 1e-8
 		tired = iter > max_iter || el_time > max_time
 
-		@info log_row(Any[iter, normgp, normcx])
+    @info log_row(Any[iter, obj(nlp, x), normgp, normcx])
 	end
 
 	if solved
