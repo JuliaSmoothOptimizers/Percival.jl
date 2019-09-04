@@ -24,7 +24,7 @@ function AugLagModel(model :: AbstractNLPModel, y :: AbstractVector, mu :: Real)
   ncon = 0
   lvar = model.meta.lvar
   uvar = model.meta.uvar
-    nnzh = model.meta.nnzh
+  nnzh = model.meta.nnzh
 
   meta = NLPModelMeta(model.meta.nvar, x0 = x0, ncon = ncon, lvar = lvar, uvar = uvar)
 
