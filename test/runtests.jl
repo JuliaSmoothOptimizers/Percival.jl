@@ -10,7 +10,7 @@ using NLPModels
 
 function test()
   # unconstrained tests from JSOSolvers
-  # test_unconstrained_solver(al)
+  test_unconstrained_solver(al)
 
   # Bound constrained tests from JSOSolvers
   #test_bound_constrained_solver(al)
@@ -92,7 +92,6 @@ function test()
       @test output.status == :first_order
     end
   end
-
   #=
   @testset "Small inequality constrained problems" begin
     for (x0, m, f, c, lcon, ucon, sol) in [([1.0; 2.0], 1,
