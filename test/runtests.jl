@@ -13,7 +13,7 @@ function test()
   test_unconstrained_solver(al)
 
   # Bound constrained tests from JSOSolvers
-  #test_bound_constrained_solver(al)
+  test_bound_constrained_solver(al)
 
   @testset "Small equality constrained problems" begin
     for (x0, m, f, c, sol) in [([1.0; 2.0], 1,
