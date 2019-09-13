@@ -92,7 +92,7 @@ function test()
       @test output.status == :first_order
     end
   end
-  #=
+
   @testset "Small inequality constrained problems" begin
     for (x0, m, f, c, lcon, ucon, sol) in [([1.0; 2.0], 1,
                                             x -> 2x[1]^2 + x[1] * x[2] + x[2]^2 - 9x[1] - 9x[2],
@@ -136,7 +136,7 @@ function test()
       @test output.status == :first_order
     end
   end
-  =#
+  
 end
 
 test()

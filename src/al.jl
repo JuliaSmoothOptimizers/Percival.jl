@@ -10,8 +10,7 @@ using JSOSolvers, Krylov
 
 function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=-1, atol :: Real = 1e-7, rtol :: Real = 1e-7)
 
-  x = copy(nlp.meta.x0)
-  T = eltype(x)
+  T = eltype(nlp.meta.x0)
 
   if nlp.meta.ncon == 0 # unconstrained
 
@@ -30,6 +29,15 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
                                  iter = iter, elapsed_time = el_time)
   end
 
+  # number of slack variables
+  ns = nlp.meta.ncon - length(nlp.meta.jfix)
+
+  # SlackModel create slack variables if necessary
+  nlp = SlackModel(nlp)
+
+  x = copy(nlp.meta.x0)
+  x = T.(x)
+  
   gp = zeros(T, nlp.meta.nvar)
   cx = cons(nlp, x)
   Jx = jac(nlp, x)
@@ -110,6 +118,6 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
     end
   end
 
-  return GenericExecutionStats(status, nlp, solution = x, objective = obj(nlp, x), dual_feas = normgp, primal_feas = normcx,
+  return GenericExecutionStats(status, nlp, solution = x[1:nlp.meta.nvar-ns], objective = obj(nlp, x), dual_feas = normgp, primal_feas = normcx,
                                iter = iter, elapsed_time = el_time)
 end
