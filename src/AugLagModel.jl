@@ -16,10 +16,11 @@ mutable struct AugLagModel <: AbstractNLPModel
   model :: AbstractNLPModel
   y :: AbstractVector
   mu :: Real
-  cx :: AbstractVector
+  x :: AbstractVector # save last iteration of subsolver
+  cx :: AbstractVector # save last constraint value of subsolver
 end
 
-function AugLagModel(model :: AbstractNLPModel, y :: AbstractVector, mu :: Real)
+function AugLagModel(model :: AbstractNLPModel, y :: AbstractVector, mu :: Real, x :: AbstractVector, cx :: AbstractVector)
 
   x0 = model.meta.x0
   ncon = 0
@@ -29,27 +30,30 @@ function AugLagModel(model :: AbstractNLPModel, y :: AbstractVector, mu :: Real)
 
   meta = NLPModelMeta(model.meta.nvar, x0 = x0, ncon = ncon, lvar = lvar, uvar = uvar)
 
-  # Preallocation
-  cx = zeros(model.meta.ncon)
-
-  return AugLagModel(meta, Counters(), model, y, mu, cx)
+  return AugLagModel(meta, Counters(), model, y, mu, x, cx)
 end
 
 function NLPModels.obj(nlp :: AugLagModel, x :: AbstractVector)
   increment!(nlp, :neval_obj)
-  cons!(nlp.model, x, nlp.cx)
+  if x != nlp.x
+    cons!(nlp.model, x, nlp.cx)
+  end
   return obj(nlp.model, x) - dot(nlp.y, nlp.cx) + (nlp.mu / 2) * dot(nlp.cx, nlp.cx)
 end
 
 function NLPModels.grad!(nlp :: AugLagModel, x :: AbstractVector, g :: AbstractVector)
   increment!(nlp, :neval_grad)
-  cons!(nlp.model, x, nlp.cx)
+  if x != nlp.x
+    cons!(nlp.model, x, nlp.cx)
+  end
   g .= grad(nlp.model, x) - jtprod(nlp.model, x, nlp.y) + nlp.mu * jtprod(nlp.model, x, nlp.cx)
 end
 
 function NLPModels.hprod!(nlp :: AugLagModel, x :: AbstractVector, v :: AbstractVector, Hv :: AbstractVector;
   obj_weight :: Float64 = 1.0)
-  cons!(nlp.model, x, nlp.cx)
+  if x != nlp.x
+    cons!(nlp.model, x, nlp.cx)
+  end
   Jv = jprod(nlp.model, x, v)
   Hv .= hprod(nlp.model, x, v, obj_weight = obj_weight, y = nlp.mu * nlp.cx - nlp.y) + nlp.mu * jtprod(nlp.model, x, Jv)
 end
