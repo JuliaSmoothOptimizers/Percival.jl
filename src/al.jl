@@ -37,9 +37,8 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
 
   x = copy(nlp.meta.x0)
   x = T.(x)
-  
+
   gp = zeros(T, nlp.meta.nvar)
-  cx = cons(nlp, x)
   Jx = jac(nlp, x)
   gx = grad(nlp, x)
 
@@ -51,13 +50,13 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
   eta = 0.5
 
   # create initial subproblem
-  al_nlp = AugLagModel(nlp, y, μ)
+  al_nlp = AugLagModel(nlp, y, μ, x, cons(nlp, x))
 
   # stationarity measure
   gL =  grad(nlp, x) - jtprod(nlp, x, y)
   project_step!(gp, x, -gL, T.(nlp.meta.lvar), T.(nlp.meta.uvar)) # Proj(x - gL) - x
   normgp = norm(gp)
-  normcx = norm(cx)
+  normcx = norm(al_nlp.cx)
 
   # tolerance for optimal measure
   tol = atol + rtol*normgp
@@ -79,14 +78,15 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
 
     # solve subproblem
     S = with_logger(NullLogger()) do
-      tron(al_nlp, x = x)
+      tron(al_nlp, x = copy(al_nlp.x))
     end
-    x = S.solution
-    cx = cons(nlp, x)
-    normcx = norm(cx)
+
+    al_nlp.x = S.solution
+    cons!(nlp, al_nlp.x, al_nlp.cx)
+    normcx = norm(al_nlp.cx)
 
     if normcx <= eta
-      al_nlp.y = al_nlp.y - al_nlp.mu * cx
+      al_nlp.y = al_nlp.y - al_nlp.mu * al_nlp.cx
       eta = T.(eta / (al_nlp.mu)^0.9)
     else
       μ = 100 * μ
@@ -95,8 +95,8 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
     end
 
     # stationarity measure
-    gL = grad(nlp, x) - jtprod(nlp, x, al_nlp.y)
-    project_step!(gp, x, -gL, T.(nlp.meta.lvar), T.(nlp.meta.uvar)) # Proj(x - gL) - x
+    gL = grad(nlp, al_nlp.x) - jtprod(nlp, al_nlp.x, al_nlp.y)
+    project_step!(gp, al_nlp.x, -gL, T.(nlp.meta.lvar), T.(nlp.meta.uvar)) # Proj(x - gL) - x
     normgp = norm(gp)
 
     iter += 1
@@ -104,7 +104,7 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
     solved = normgp ≤ tol && normcx ≤ 1e-8
     tired = iter > max_iter || el_time > max_time
 
-    @info log_row(Any[iter, obj(nlp, x), normgp, normcx])
+    @info log_row(Any[iter, S.objective, normgp, normcx])
   end
 
   if solved
@@ -118,6 +118,6 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
     end
   end
 
-  return GenericExecutionStats(status, nlp, solution = x[1:nlp.meta.nvar-ns], objective = obj(nlp, x), dual_feas = normgp, primal_feas = normcx,
+  return GenericExecutionStats(status, nlp, solution = al_nlp.x[1:nlp.meta.nvar-ns], objective = obj(nlp, al_nlp.x), dual_feas = normgp, primal_feas = normcx,
                                iter = iter, elapsed_time = el_time)
 end
