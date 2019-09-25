@@ -37,6 +37,7 @@ function NLPModels.obj(nlp :: AugLagModel, x :: AbstractVector)
   increment!(nlp, :neval_obj)
   if x != nlp.x
     cons!(nlp.model, x, nlp.cx)
+    nlp.x = x
   end
   return obj(nlp.model, x) - dot(nlp.y, nlp.cx) + (nlp.mu / 2) * dot(nlp.cx, nlp.cx)
 end
@@ -45,6 +46,7 @@ function NLPModels.grad!(nlp :: AugLagModel, x :: AbstractVector, g :: AbstractV
   increment!(nlp, :neval_grad)
   if x != nlp.x
     cons!(nlp.model, x, nlp.cx)
+    nlp.x = x
   end
   g .= grad(nlp.model, x) - jtprod(nlp.model, x, nlp.y) + nlp.mu * jtprod(nlp.model, x, nlp.cx)
 end
@@ -53,6 +55,7 @@ function NLPModels.hprod!(nlp :: AugLagModel, x :: AbstractVector, v :: Abstract
   obj_weight :: Float64 = 1.0)
   if x != nlp.x
     cons!(nlp.model, x, nlp.cx)
+    nlp.x = x
   end
   Jv = jprod(nlp.model, x, v)
   Hv .= hprod(nlp.model, x, v, obj_weight = obj_weight, y = nlp.mu * nlp.cx - nlp.y) + nlp.mu * jtprod(nlp.model, x, Jv)
