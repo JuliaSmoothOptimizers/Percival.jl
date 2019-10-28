@@ -75,14 +75,11 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
   #atol = 0.5
 
   while !(solved || tired)
-
     # solve subproblem
     S = with_logger(NullLogger()) do
       tron(al_nlp, x = copy(al_nlp.x))
     end
 
-    al_nlp.x = S.solution
-    cons!(nlp, al_nlp.x, al_nlp.cx)
     normcx = norm(al_nlp.cx)
 
     if normcx <= eta
