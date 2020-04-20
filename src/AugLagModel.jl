@@ -49,6 +49,7 @@ function NLPModels.grad!(nlp :: AugLagModel, x :: AbstractVector, g :: AbstractV
       nlp.x .= x
   end
   g .= grad(nlp.model, x) - jtprod(nlp.model, x, nlp.y) + nlp.mu * jtprod(nlp.model, x, nlp.cx)
+  return g
 end
 
 function NLPModels.hprod!(nlp :: AugLagModel, x :: AbstractVector, v :: AbstractVector, Hv :: AbstractVector;
@@ -58,7 +59,8 @@ function NLPModels.hprod!(nlp :: AugLagModel, x :: AbstractVector, v :: Abstract
     nlp.x .= x
   end
   Jv = jprod(nlp.model, x, v)
-  Hv .= hprod(nlp.model, x, v, obj_weight = obj_weight, y = nlp.mu * nlp.cx - nlp.y) + nlp.mu * jtprod(nlp.model, x, Jv)
+  Hv .= hprod(nlp.model, x, nlp.mu * nlp.cx - nlp.y, v, obj_weight = obj_weight) + nlp.mu * jtprod(nlp.model, x, Jv)
+  return Hv
 end
 
 #function NLPModels.hess_structure!(nlp :: AugLagModel, rows :: AbstractVector{<: Integer}, cols :: AbstractVector{<: Integer})
