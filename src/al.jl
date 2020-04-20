@@ -1,6 +1,6 @@
 export al
 
-using Logging, SparseArrays, SolverTools, NLPModels
+using Logging, SolverTools, NLPModels
 
 using JSOSolvers, Krylov
 
@@ -83,11 +83,11 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
     normcx = norm(al_nlp.cx)
 
     if normcx <= eta
-      al_nlp.y = al_nlp.y - al_nlp.mu * al_nlp.cx
+      update_y!(al_nlp)
       eta = T.(eta / (al_nlp.mu)^0.9)
     else
       μ = 100 * μ
-      al_nlp.mu  = μ
+      update_mu!(al_nlp, μ)
       eta = T.(1 / μ^0.1)
     end
 
