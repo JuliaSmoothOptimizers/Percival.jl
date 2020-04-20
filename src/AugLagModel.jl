@@ -1,4 +1,4 @@
-export AugLagModel
+export AugLagModel, update_cx!, update_y!, update_mu!
 
 using NLPModels, LinearAlgebra, LinearOperators
 using NLPModels: increment!
@@ -18,6 +18,7 @@ mutable struct AugLagModel <: AbstractNLPModel
   mu :: Real
   x :: AbstractVector # save last iteration of subsolver
   cx :: AbstractVector # save last constraint value of subsolver
+  muc_y :: AbstractVector # y - mu * cx
 end
 
 function AugLagModel(model :: AbstractNLPModel, y :: AbstractVector, mu :: Real, x :: AbstractVector, cx :: AbstractVector)
@@ -30,36 +31,46 @@ function AugLagModel(model :: AbstractNLPModel, y :: AbstractVector, mu :: Real,
 
   meta = NLPModelMeta(model.meta.nvar, x0 = x0, ncon = ncon, lvar = lvar, uvar = uvar)
 
-  return AugLagModel(meta, Counters(), model, y, mu, x, cx)
+  return AugLagModel(meta, Counters(), model, y, mu, x, cx, y - mu * cx)
+end
+
+function update_cx!(nlp :: AbstractNLPModel, x :: AbstractVector)
+  if x != nlp.x
+    cons!(nlp.model, x, nlp.cx)
+    nlp.x .= x
+    nlp.muc_y .= nlp.mu .* nlp.cx .- nlp.y
+  end
+end
+
+function update_y!(nlp :: AbstractNLPModel)
+  nlp.y .= -nlp.muc_y
+  nlp.muc_y .= nlp.mu .* nlp.cx .- nlp.y
+end
+
+function update_mu!(nlp :: AbstractNLPModel, mu :: Real)
+  nlp.mu = mu
+  nlp.muc_y .= nlp.mu .* nlp.cx .- nlp.y
 end
 
 function NLPModels.obj(nlp :: AugLagModel, x :: AbstractVector)
   increment!(nlp, :neval_obj)
-  if x != nlp.x
-    cons!(nlp.model, x, nlp.cx)
-    nlp.x .= x
-  end
+  update_cx!(nlp, x)
   return obj(nlp.model, x) - dot(nlp.y, nlp.cx) + (nlp.mu / 2) * dot(nlp.cx, nlp.cx)
 end
 
 function NLPModels.grad!(nlp :: AugLagModel, x :: AbstractVector, g :: AbstractVector)
   increment!(nlp, :neval_grad)
-  if x != nlp.x
-      cons!(nlp.model, x, nlp.cx)
-      nlp.x .= x
-  end
-  g .= grad(nlp.model, x) - jtprod(nlp.model, x, nlp.y) + nlp.mu * jtprod(nlp.model, x, nlp.cx)
+  update_cx!(nlp, x)
+  grad!(nlp.model, x, g)
+  g .+= jtprod(nlp.model, x, nlp.muc_y)
   return g
 end
 
 function NLPModels.hprod!(nlp :: AugLagModel, x :: AbstractVector, v :: AbstractVector, Hv :: AbstractVector;
   obj_weight :: Float64 = 1.0)
-  if x != nlp.x
-    cons!(nlp.model, x, nlp.cx)
-    nlp.x .= x
-  end
+  update_cx!(nlp, x)
   Jv = jprod(nlp.model, x, v)
-  Hv .= hprod(nlp.model, x, nlp.mu * nlp.cx - nlp.y, v, obj_weight = obj_weight) + nlp.mu * jtprod(nlp.model, x, Jv)
+  Hv .= hprod(nlp.model, x, nlp.muc_y, v, obj_weight = obj_weight) + nlp.mu * jtprod(nlp.model, x, Jv)
   return Hv
 end
 
