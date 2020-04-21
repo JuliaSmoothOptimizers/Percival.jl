@@ -66,8 +66,18 @@ function NLPModels.grad!(nlp :: AugLagModel, x :: AbstractVector, g :: AbstractV
   return g
 end
 
-function NLPModels.hprod!(nlp :: AugLagModel, x :: AbstractVector, v :: AbstractVector, Hv :: AbstractVector;
-  obj_weight :: Float64 = 1.0)
+function NLPModels.objgrad!(nlp :: AugLagModel, x :: AbstractVector, g :: AbstractVector)
+  increment!(nlp, :neval_obj)
+  increment!(nlp, :neval_grad)
+  update_cx!(nlp, x)
+  f = obj(nlp.model, x) - dot(nlp.y, nlp.cx) + (nlp.mu / 2) * dot(nlp.cx, nlp.cx)
+  grad!(nlp.model, x, g)
+  g .+= jtprod(nlp.model, x, nlp.muc_y)
+  return f, g
+end
+
+function NLPModels.hprod!(nlp :: AugLagModel, x :: AbstractVector, v :: AbstractVector, Hv :: AbstractVector; obj_weight :: Float64 = 1.0)
+  increment!(nlp, :neval_hprod)
   update_cx!(nlp, x)
   Jv = jprod(nlp.model, x, v)
   Hv .= hprod(nlp.model, x, nlp.muc_y, v, obj_weight = obj_weight) + nlp.mu * jtprod(nlp.model, x, Jv)
