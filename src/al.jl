@@ -23,7 +23,7 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
     el_time = S.elapsed_time
     iter = S.iter
     normgp = S.dual_feas
-    normcx = T.(0.0)
+    normcx = zero(T)
 
     return GenericExecutionStats(status, nlp, solution = x, objective = obj(nlp, x), dual_feas = normgp, primal_feas = normcx,
                                  iter = iter, elapsed_time = el_time)
@@ -41,11 +41,13 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
   gp = zeros(T, nlp.meta.nvar)
   Jx = jac(nlp, x)
   fx, gx = objgrad(nlp, x)
+  lvar = eltype(nlp.meta.lvar) == T ? nlp.meta.lvar : T.(nlp.meta.lvar)
+  uvar = eltype(nlp.meta.uvar) == T ? nlp.meta.uvar : T.(nlp.meta.uvar)
 
   # penalty parameter
   μ = T.(10.0)
   # Lagrange multiplier
-  y = T.(cgls(Jx', gx)[1])
+  y = cgls(Jx', gx)[1]
   # tolerance
   eta = 0.5
 
@@ -54,7 +56,7 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
 
   # stationarity measure
   gL =  grad(nlp, x) - jtprod(nlp, x, y)
-  project_step!(gp, x, -gL, T.(nlp.meta.lvar), T.(nlp.meta.uvar)) # Proj(x - gL) - x
+  project_step!(gp, x, -gL, lvar, uvar) # Proj(x - gL) - x
   normgp = norm(gp)
   normcx = norm(al_nlp.cx)
 
@@ -84,16 +86,16 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
 
     if normcx <= eta
       update_y!(al_nlp)
-      eta = T.(eta / (al_nlp.mu)^0.9)
+      eta = eta / al_nlp.mu^T(0.9)
     else
       μ = 100 * μ
       update_mu!(al_nlp, μ)
-      eta = T.(1 / μ^0.1)
+      eta = 1 / μ^T(0.1)
     end
 
     # stationarity measure
     gL = grad(nlp, al_nlp.x) - jtprod(nlp, al_nlp.x, al_nlp.y)
-    project_step!(gp, al_nlp.x, -gL, T.(nlp.meta.lvar), T.(nlp.meta.uvar)) # Proj(x - gL) - x
+    project_step!(gp, al_nlp.x, -gL, lvar, uvar) # Proj(x - gL) - x
     normgp = norm(gp)
 
     iter += 1
