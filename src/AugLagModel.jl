@@ -10,18 +10,18 @@ this new model represents the subproblem of the augmented Lagrangian method
 where y is an estimates of the Lagrange multiplier vector and μ is the penalty parameter.
 """
 
-mutable struct AugLagModel <: AbstractNLPModel
+mutable struct AugLagModel{M <: AbstractNLPModel, T <: AbstractFloat, V <: AbstractVector} <: AbstractNLPModel
   meta :: NLPModelMeta
   counters :: Counters
-  model :: AbstractNLPModel
-  y :: AbstractVector
-  mu :: Real
-  x :: AbstractVector # save last iteration of subsolver
-  cx :: AbstractVector # save last constraint value of subsolver
-  muc_y :: AbstractVector # y - mu * cx
+  model :: M
+  y     :: V
+  mu    :: T
+  x     :: V # save last iteration of subsolver
+  cx    :: V # save last constraint value of subsolver
+  muc_y :: V # y - mu * cx
 end
 
-function AugLagModel(model :: AbstractNLPModel, y :: AbstractVector, mu :: Real, x :: AbstractVector, cx :: AbstractVector)
+function AugLagModel(model :: AbstractNLPModel, y :: AbstractVector, mu :: AbstractFloat, x :: AbstractVector, cx :: AbstractVector)
 
   x0 = model.meta.x0
   ncon = 0
@@ -47,7 +47,7 @@ function update_y!(nlp :: AbstractNLPModel)
   nlp.muc_y .= nlp.mu .* nlp.cx .- nlp.y
 end
 
-function update_mu!(nlp :: AbstractNLPModel, mu :: Real)
+function update_mu!(nlp :: AbstractNLPModel, mu :: AbstractFloat)
   nlp.mu = mu
   nlp.muc_y .= nlp.mu .* nlp.cx .- nlp.y
 end
