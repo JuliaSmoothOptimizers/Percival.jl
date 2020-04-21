@@ -40,7 +40,7 @@ end
 
   min f(x)  s.t.  c(x) = 0, l ≦ x ≦ u"""
 
-function al(::Val{:equ}, nlp :: AbstractNLPModel; mu :: Real = eltype(nlp.meta.x0)(10.0),
+function al(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.meta.x0)(10.0),
             max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=-1,
             atol :: Real = 1e-8, rtol :: Real = 1e-8,
             subsolver_logger :: AbstractLogger=NullLogger(),
@@ -65,10 +65,10 @@ function al(::Val{:equ}, nlp :: AbstractNLPModel; mu :: Real = eltype(nlp.meta.x
     cgls(Jx', gx)[1]
   end
   # tolerance
-  eta = 0.5
+  η = 0.5
 
   # create initial subproblem
-  al_nlp = AugLagModel(nlp, y, T(mu), x, cons(nlp, x))
+  al_nlp = AugLagModel(nlp, y, T(μ), x, cons(nlp, x))
 
   # stationarity measure
   gL =  grad(nlp, x) - jtprod(nlp, x, y)
@@ -77,7 +77,8 @@ function al(::Val{:equ}, nlp :: AbstractNLPModel; mu :: Real = eltype(nlp.meta.x
   normcx = norm(al_nlp.cx)
 
   # tolerance for optimal measure
-  tol = atol + rtol*normgp
+  ϵd = atol + rtol * normgp
+  ϵp = atol
 
   iter = 0
   start_time = time()
@@ -86,11 +87,8 @@ function al(::Val{:equ}, nlp :: AbstractNLPModel; mu :: Real = eltype(nlp.meta.x
   @info log_header([:iter, :fx, :normgp, :normcx], [Int, Float64, Float64, Float64])
   @info log_row(Any[iter, fx, normgp, normcx])
 
-  solved = normgp ≤ tol && normcx ≤ 1e-8
+  solved = normgp ≤ ϵd && normcx ≤ ϵp
   tired = iter > max_iter || el_time > max_time
-
-  #adaptive tolerance
-  #atol = 0.5
 
   while !(solved || tired)
     # solve subproblem
@@ -99,14 +97,14 @@ function al(::Val{:equ}, nlp :: AbstractNLPModel; mu :: Real = eltype(nlp.meta.x
     end
 
     normcx = norm(al_nlp.cx)
-    fx = S.objective + dot(al_nlp.y, al_nlp.cx) - normcx^2 * al_nlp.mu / 2
+    fx = S.objective + dot(al_nlp.y, al_nlp.cx) - normcx^2 * al_nlp.μ / 2
 
-    if normcx <= eta
+    if normcx <= η
       update_y!(al_nlp)
-      eta = eta / al_nlp.mu^T(0.9)
+      η /= al_nlp.μ^T(0.9)
     else
-      update_mu!(al_nlp, 100 * al_nlp.mu)
-      eta = 1 / al_nlp.mu^T(0.1)
+      update_μ!(al_nlp, 100 * al_nlp.μ)
+      η = 1 / al_nlp.μ^T(0.1)
     end
 
     # stationarity measure
@@ -116,7 +114,7 @@ function al(::Val{:equ}, nlp :: AbstractNLPModel; mu :: Real = eltype(nlp.meta.x
 
     iter += 1
     el_time = time() - start_time
-    solved = normgp ≤ tol && normcx ≤ 1e-8
+    solved = normgp ≤ ϵd && normcx ≤ ϵp
     tired = iter > max_iter || el_time > max_time
 
     @info log_row(Any[iter, fx, normgp, normcx])
