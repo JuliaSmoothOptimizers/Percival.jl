@@ -4,40 +4,52 @@ using Logging, SolverTools, NLPModels
 
 using JSOSolvers, Krylov
 
-"""Implementation of a augmented Lagrangian method for:
+function al(nlp :: AbstractNLPModel; kwargs...)
+  if unconstrained(nlp) || bound_constrained(nlp)
+    return al(Val(:tron), nlp; kwargs...)
+  elseif equality_constrained(nlp)
+    return al(Val(:equ), nlp; kwargs...)
+  else # has inequalities
+    return al(Val(:ineq), nlp; kwargs...)
+  end
+end
+
+function al(::Val{:tron}, nlp :: AbstractNLPModel;
+            max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=-1,
+            atol :: Real = 1e-8, rtol :: Real = 1e-8,
+            subsolver_logger :: AbstractLogger=NullLogger(),
+           )
+  if !(unconstrained(nlp) || bound_constrained(nlp))
+    error("al(::Val{:tron}, nlp) should only be called for unconstrained or bound-constrained problems. Use al(nlp)")
+  end
+  @warn "Problem does not have general constraints; calling tron"
+  return tron(nlp, subsolver_logger=subsolver_logger, atol=atol, rtol=rtol, max_eval=max_eval, max_time=max_time)
+end
+
+function al(::Val{:ineq}, nlp :: AbstractNLPModel; kwargs...)
+  if nlp.meta.ncon == 0 || equality_constrained(nlp)
+    error("al(::Val{:ineq}, nlp) should only be called for problems with inequalities. Use al(nlp)")
+  end
+  snlp = SlackModel(nlp)
+  output = al(Val(:equ), snlp; kwargs...)
+  output.solution = output.solution[1:nlp.meta.nvar]
+  return output
+end
+
+"""Implementation of an augmented Lagrangian method for:
 
   min f(x)  s.t.  c(x) = 0, l ≦ x ≦ u"""
 
-function al(nlp :: AbstractNLPModel; mu :: Real = eltype(nlp.meta.x0)(10.0),
+function al(::Val{:equ}, nlp :: AbstractNLPModel; mu :: Real = eltype(nlp.meta.x0)(10.0),
             max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=-1,
-            atol :: Real = 1e-7, rtol :: Real = 1e-7,
+            atol :: Real = 1e-8, rtol :: Real = 1e-8,
             subsolver_logger :: AbstractLogger=NullLogger(),
            )
-
-  T = eltype(nlp.meta.x0)
-
-  if nlp.meta.ncon == 0 # unconstrained
-
-    S = with_logger(subsolver_logger) do
-      tron(nlp)
-    end
-
-    x = S.solution
-    status = S.status
-    el_time = S.elapsed_time
-    iter = S.iter
-    normgp = S.dual_feas
-    normcx = zero(T)
-
-    return GenericExecutionStats(status, nlp, solution = x, objective = obj(nlp, x), dual_feas = normgp, primal_feas = normcx,
-                                 iter = iter, elapsed_time = el_time)
+  if nlp.meta.ncon == 0 || !equality_constrained(nlp)
+    error("al(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use al(nlp)")
   end
 
-  # number of slack variables
-  ns = nlp.meta.ncon - length(nlp.meta.jfix)
-
-  # SlackModel create slack variables if necessary
-  nlp = SlackModel(nlp)
+  T = eltype(nlp.meta.x0)
 
   x = copy(nlp.meta.x0)
   x = T.(x)
@@ -120,6 +132,7 @@ function al(nlp :: AbstractNLPModel; mu :: Real = eltype(nlp.meta.x0)(10.0),
     end
   end
 
-  return GenericExecutionStats(status, nlp, solution = al_nlp.x[1:nlp.meta.nvar-ns], objective = obj(nlp, al_nlp.x), dual_feas = normgp, primal_feas = normcx,
-                               iter = iter, elapsed_time = el_time)
+  return GenericExecutionStats(status, nlp, solution = al_nlp.x,
+                               objective = obj(nlp, al_nlp.x), dual_feas = normgp, primal_feas = normcx,
+                               multipliers = y, iter = iter, elapsed_time = el_time)
 end
