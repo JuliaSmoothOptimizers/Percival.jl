@@ -1,7 +1,7 @@
 export AugLagModel, update_cx!, update_y!, update_mu!
 
 using NLPModels, LinearAlgebra, LinearOperators
-using NLPModels: increment!
+using NLPModels: increment!, @lencheck # @lencheck is not exported in 0.12.0
 
 """Given a model
   min f(x)  s.t.  c(x) = 0, l ≦ x ≦ u,
@@ -22,19 +22,17 @@ mutable struct AugLagModel{M <: AbstractNLPModel, T <: AbstractFloat, V <: Abstr
 end
 
 function AugLagModel(model :: AbstractNLPModel, y :: AbstractVector, mu :: AbstractFloat, x :: AbstractVector, cx :: AbstractVector)
+  @lencheck model.meta.ncon y cx
+  @lencheck model.meta.nvar x
+  mu ≥ 0 || error("Penalty parameter mu should be ≥ 0")
 
-  x0 = model.meta.x0
-  ncon = 0
-  lvar = model.meta.lvar
-  uvar = model.meta.uvar
-  nnzh = model.meta.nnzh
-
-  meta = NLPModelMeta(model.meta.nvar, x0 = x0, ncon = ncon, lvar = lvar, uvar = uvar)
+  meta = NLPModelMeta(model.meta.nvar, x0=model.meta.x0, lvar=model.meta.lvar, uvar=model.meta.uvar)
 
   return AugLagModel(meta, Counters(), model, y, mu, x, cx, y - mu * cx)
 end
 
 function update_cx!(nlp :: AbstractNLPModel, x :: AbstractVector)
+  @lencheck nlp.meta.nvar x
   if x != nlp.x
     cons!(nlp.model, x, nlp.cx)
     nlp.x .= x
@@ -53,12 +51,15 @@ function update_mu!(nlp :: AbstractNLPModel, mu :: AbstractFloat)
 end
 
 function NLPModels.obj(nlp :: AugLagModel, x :: AbstractVector)
+  @lencheck nlp.meta.nvar x
   increment!(nlp, :neval_obj)
   update_cx!(nlp, x)
   return obj(nlp.model, x) - dot(nlp.y, nlp.cx) + (nlp.mu / 2) * dot(nlp.cx, nlp.cx)
 end
 
 function NLPModels.grad!(nlp :: AugLagModel, x :: AbstractVector, g :: AbstractVector)
+  @lencheck nlp.meta.nvar x
+  @lencheck nlp.meta.nvar g
   increment!(nlp, :neval_grad)
   update_cx!(nlp, x)
   grad!(nlp.model, x, g)
@@ -67,6 +68,8 @@ function NLPModels.grad!(nlp :: AugLagModel, x :: AbstractVector, g :: AbstractV
 end
 
 function NLPModels.objgrad!(nlp :: AugLagModel, x :: AbstractVector, g :: AbstractVector)
+  @lencheck nlp.meta.nvar x
+  @lencheck nlp.meta.nvar g
   increment!(nlp, :neval_obj)
   increment!(nlp, :neval_grad)
   update_cx!(nlp, x)
@@ -77,6 +80,9 @@ function NLPModels.objgrad!(nlp :: AugLagModel, x :: AbstractVector, g :: Abstra
 end
 
 function NLPModels.hprod!(nlp :: AugLagModel, x :: AbstractVector, v :: AbstractVector, Hv :: AbstractVector; obj_weight :: Float64 = 1.0)
+  @lencheck nlp.meta.nvar x
+  @lencheck nlp.meta.nvar v
+  @lencheck nlp.meta.nvar Hv
   increment!(nlp, :neval_hprod)
   update_cx!(nlp, x)
   Jv = jprod(nlp.model, x, v)
