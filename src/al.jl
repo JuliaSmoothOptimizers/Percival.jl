@@ -40,7 +40,7 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
 
   gp = zeros(T, nlp.meta.nvar)
   Jx = jac(nlp, x)
-  gx = grad(nlp, x)
+  fx, gx = objgrad(nlp, x)
 
   # penalty parameter
   μ = T.(10.0)
@@ -66,7 +66,7 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
   el_time = 0.0
 
   @info log_header([:iter, :fx, :normgp, :normcx], [Int, Float64, Float64, Float64])
-  @info log_row(Any[iter, obj(nlp, x), normgp, normcx])
+  @info log_row(Any[iter, fx, normgp, normcx])
 
   solved = normgp ≤ tol && normcx ≤ 1e-8
   tired = iter > max_iter || el_time > max_time
