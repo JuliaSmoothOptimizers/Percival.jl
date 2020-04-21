@@ -8,7 +8,7 @@ using JSOSolvers, Krylov
 
   min f(x)  s.t.  c(x) = 0, l ≦ x ≦ u"""
 
-function al(nlp :: AbstractNLPModel;
+function al(nlp :: AbstractNLPModel; mu :: Real = eltype(nlp.meta.x0)(10.0),
             max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=-1,
             atol :: Real = 1e-7, rtol :: Real = 1e-7,
             subsolver_logger :: AbstractLogger=NullLogger(),
@@ -48,8 +48,6 @@ function al(nlp :: AbstractNLPModel;
   lvar = eltype(nlp.meta.lvar) == T ? nlp.meta.lvar : T.(nlp.meta.lvar)
   uvar = eltype(nlp.meta.uvar) == T ? nlp.meta.uvar : T.(nlp.meta.uvar)
 
-  # penalty parameter
-  μ = T.(10.0)
   # Lagrange multiplier
   y = with_logger(subsolver_logger) do
     cgls(Jx', gx)[1]
@@ -58,7 +56,7 @@ function al(nlp :: AbstractNLPModel;
   eta = 0.5
 
   # create initial subproblem
-  al_nlp = AugLagModel(nlp, y, μ, x, cons(nlp, x))
+  al_nlp = AugLagModel(nlp, y, T(mu), x, cons(nlp, x))
 
   # stationarity measure
   gL =  grad(nlp, x) - jtprod(nlp, x, y)
@@ -94,9 +92,8 @@ function al(nlp :: AbstractNLPModel;
       update_y!(al_nlp)
       eta = eta / al_nlp.mu^T(0.9)
     else
-      μ = 100 * μ
-      update_mu!(al_nlp, μ)
-      eta = 1 / μ^T(0.1)
+      update_mu!(al_nlp, 100 * al_nlp.mu)
+      eta = 1 / al_nlp.mu^T(0.1)
     end
 
     # stationarity measure
