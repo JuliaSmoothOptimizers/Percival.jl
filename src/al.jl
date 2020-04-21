@@ -8,13 +8,17 @@ using JSOSolvers, Krylov
 
   min f(x)  s.t.  c(x) = 0, l ≦ x ≦ u"""
 
-function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=-1, atol :: Real = 1e-7, rtol :: Real = 1e-7)
+function al(nlp :: AbstractNLPModel;
+            max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=-1,
+            atol :: Real = 1e-7, rtol :: Real = 1e-7,
+            subsolver_logger :: AbstractLogger=NullLogger(),
+           )
 
   T = eltype(nlp.meta.x0)
 
   if nlp.meta.ncon == 0 # unconstrained
 
-    S = with_logger(NullLogger()) do
+    S = with_logger(subsolver_logger) do
       tron(nlp)
     end
 
@@ -47,7 +51,9 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
   # penalty parameter
   μ = T.(10.0)
   # Lagrange multiplier
-  y = cgls(Jx', gx)[1]
+  y = with_logger(subsolver_logger) do
+    cgls(Jx', gx)[1]
+  end
   # tolerance
   eta = 0.5
 
@@ -78,7 +84,7 @@ function al(nlp :: AbstractNLPModel; max_iter :: Int = 1000, max_time :: Real = 
 
   while !(solved || tired)
     # solve subproblem
-    S = with_logger(NullLogger()) do
+    S = with_logger(subsolver_logger) do
       tron(al_nlp, x = copy(al_nlp.x))
     end
 
