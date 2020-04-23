@@ -99,6 +99,7 @@ function al(::Val{:equ}, nlp :: AbstractNLPModel; mu :: Real = eltype(nlp.meta.x
     end
 
     normcx = norm(al_nlp.cx)
+    fx = S.objective + dot(al_nlp.y, al_nlp.cx) - normcx^2 * al_nlp.mu / 2
 
     if normcx <= eta
       update_y!(al_nlp)
@@ -118,7 +119,7 @@ function al(::Val{:equ}, nlp :: AbstractNLPModel; mu :: Real = eltype(nlp.meta.x
     solved = normgp ≤ tol && normcx ≤ 1e-8
     tired = iter > max_iter || el_time > max_time
 
-    @info log_row(Any[iter, S.objective, normgp, normcx])
+    @info log_row(Any[iter, fx, normgp, normcx])
   end
 
   if solved
@@ -133,6 +134,6 @@ function al(::Val{:equ}, nlp :: AbstractNLPModel; mu :: Real = eltype(nlp.meta.x
   end
 
   return GenericExecutionStats(status, nlp, solution = al_nlp.x,
-                               objective = obj(nlp, al_nlp.x), dual_feas = normgp, primal_feas = normcx,
+                               objective = fx, dual_feas = normgp, primal_feas = normcx,
                                multipliers = y, iter = iter, elapsed_time = el_time)
 end
