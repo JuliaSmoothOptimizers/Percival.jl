@@ -1,37 +1,37 @@
-export al
+export percival
 
 using Logging, SolverTools, NLPModels
 
 using JSOSolvers, Krylov
 
-function al(nlp :: AbstractNLPModel; kwargs...)
+function percival(nlp :: AbstractNLPModel; kwargs...)
   if unconstrained(nlp) || bound_constrained(nlp)
-    return al(Val(:tron), nlp; kwargs...)
+    return percival(Val(:tron), nlp; kwargs...)
   elseif equality_constrained(nlp)
-    return al(Val(:equ), nlp; kwargs...)
+    return percival(Val(:equ), nlp; kwargs...)
   else # has inequalities
-    return al(Val(:ineq), nlp; kwargs...)
+    return percival(Val(:ineq), nlp; kwargs...)
   end
 end
 
-function al(::Val{:tron}, nlp :: AbstractNLPModel;
-            max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=-1,
-            atol :: Real = 1e-8, rtol :: Real = 1e-8,
-            subsolver_logger :: AbstractLogger=NullLogger(),
-           )
+function percival(::Val{:tron}, nlp :: AbstractNLPModel;
+                  max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=-1,
+                  atol :: Real = 1e-8, rtol :: Real = 1e-8,
+                  subsolver_logger :: AbstractLogger=NullLogger(),
+                 )
   if !(unconstrained(nlp) || bound_constrained(nlp))
-    error("al(::Val{:tron}, nlp) should only be called for unconstrained or bound-constrained problems. Use al(nlp)")
+    error("percival(::Val{:tron}, nlp) should only be called for unconstrained or bound-constrained problems. Use percival(nlp)")
   end
   @warn "Problem does not have general constraints; calling tron"
   return tron(nlp, subsolver_logger=subsolver_logger, atol=atol, rtol=rtol, max_eval=max_eval, max_time=max_time)
 end
 
-function al(::Val{:ineq}, nlp :: AbstractNLPModel; kwargs...)
+function percival(::Val{:ineq}, nlp :: AbstractNLPModel; kwargs...)
   if nlp.meta.ncon == 0 || equality_constrained(nlp)
-    error("al(::Val{:ineq}, nlp) should only be called for problems with inequalities. Use al(nlp)")
+    error("percival(::Val{:ineq}, nlp) should only be called for problems with inequalities. Use percival(nlp)")
   end
   snlp = SlackModel(nlp)
-  output = al(Val(:equ), snlp; kwargs...)
+  output = percival(Val(:equ), snlp; kwargs...)
   output.solution = output.solution[1:nlp.meta.nvar]
   return output
 end
@@ -40,13 +40,13 @@ end
 
   min f(x)  s.t.  c(x) = 0, l ≦ x ≦ u"""
 
-function al(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.meta.x0)(10.0),
+function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.meta.x0)(10.0),
             max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=-1,
             atol :: Real = 1e-8, rtol :: Real = 1e-8,
             subsolver_logger :: AbstractLogger=NullLogger(),
            )
   if nlp.meta.ncon == 0 || !equality_constrained(nlp)
-    error("al(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use al(nlp)")
+    error("percival(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use percival(nlp)")
   end
 
   T = eltype(nlp.meta.x0)

@@ -1,4 +1,4 @@
-using AugLag
+using Percival
 
 using JSOSolvers, LinearAlgebra, Logging, SparseArrays, Test
 
@@ -10,10 +10,10 @@ using NLPModels
 
 function test()
   # unconstrained tests from JSOSolvers
-  test_unconstrained_solver(al)
+  test_unconstrained_solver(percival)
 
   # Bound constrained tests from JSOSolvers
-  test_bound_constrained_solver(al)
+  test_bound_constrained_solver(percival)
 
   @testset "Small equality constrained problems" begin
     for (x0, m, f, c, sol) in [([1.0; 2.0], 1,
@@ -39,7 +39,7 @@ function test()
                               ]
       nlp = ADNLPModel(f, x0, c=c, lcon=zeros(m), ucon=zeros(m))
       output = with_logger(NullLogger()) do
-        al(nlp)
+        percival(nlp)
       end
 
       @test isapprox(output.solution, sol, rtol=1e-6)
@@ -83,7 +83,7 @@ function test()
                                           ]
       nlp = ADNLPModel(f, x0, lvar=lvar, uvar=uvar, c=c, lcon=zeros(m), ucon=zeros(m))
       output = with_logger(NullLogger()) do
-        al(nlp)
+        percival(nlp)
       end
 
       @test isapprox(output.solution, sol, rtol=1e-6)
@@ -127,7 +127,7 @@ function test()
                                           ]
       nlp = ADNLPModel(f, x0, c=c, lcon=lcon, ucon=ucon)
       output = with_logger(NullLogger()) do
-        al(nlp)
+        percival(nlp)
       end
 
       @test isapprox(output.solution, sol, rtol=1e-6)
