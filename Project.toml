@@ -1,6 +1,7 @@
-name = "AugLag"
+name = "Percival"
 uuid = "01435c0c-c90d-11e9-3788-63660f8fbccc"
-authors = ["Egmara <egmara.antunes@gmail.com>"]
+authors = ["Egmara Antunes <egmara.antunes@gmail.com>",
+           "Abel Soares Siqueira <abel.s.siqueira@gmail.com"]
 version = "0.1.0"
 
 [deps]
