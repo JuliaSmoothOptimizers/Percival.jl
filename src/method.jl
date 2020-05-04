@@ -66,6 +66,7 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
   end
   # tolerance
   η = 0.5
+  ω = 1.0
 
   # create initial subproblem
   al_nlp = AugLagModel(nlp, y, T(μ), x, cons(nlp, x))
@@ -84,8 +85,8 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
   start_time = time()
   el_time = 0.0
 
-  @info log_header([:iter, :fx, :normgp, :normcx], [Int, Float64, Float64, Float64])
-  @info log_row(Any[iter, fx, normgp, normcx])
+  @info log_header([:iter, :fx, :normgp, :normcx, :μ, :normy, :sumc], [Int, Float64, Float64, Float64, Float64, Float64, Int])
+  @info log_row(Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), sum_counters(nlp)])
 
   solved = normgp ≤ ϵd && normcx ≤ ϵp
   tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval
@@ -93,7 +94,7 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
   while !(solved || tired)
     # solve subproblem
     S = with_logger(subsolver_logger) do
-      tron(al_nlp, x = copy(al_nlp.x))
+      tron(al_nlp, x = copy(al_nlp.x), rtol=0.0, atol=ω)
     end
 
     normcx = norm(al_nlp.cx)
@@ -102,9 +103,11 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
     if normcx <= η
       update_y!(al_nlp)
       η /= al_nlp.μ^T(0.9)
+      ω /= al_nlp.μ
     else
       update_μ!(al_nlp, 100 * al_nlp.μ)
       η = 1 / al_nlp.μ^T(0.1)
+      ω = 1 / al_nlp.μ
     end
 
     # stationarity measure
@@ -117,7 +120,7 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
     solved = normgp ≤ ϵd && normcx ≤ ϵp
     tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval
 
-    @info log_row(Any[iter, fx, normgp, normcx])
+    @info log_row(Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), sum_counters(nlp)])
   end
 
   if solved
