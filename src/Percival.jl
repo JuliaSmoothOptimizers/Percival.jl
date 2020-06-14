@@ -1,6 +1,6 @@
 module Percival
 
 include("AugLagModel.jl")
-include("percival.jl")
+include("method.jl")
 
 end # module
