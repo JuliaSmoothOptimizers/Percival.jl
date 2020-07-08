@@ -41,7 +41,7 @@ end
   min f(x)  s.t.  c(x) = 0, l ≦ x ≦ u"""
 
 function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.meta.x0)(10.0),
-            max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=-1,
+            max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=100000,
             atol :: Real = 1e-8, rtol :: Real = 1e-8,
             subsolver_logger :: AbstractLogger=NullLogger(),
            )
