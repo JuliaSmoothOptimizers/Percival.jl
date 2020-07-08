@@ -15,7 +15,7 @@ function percival(nlp :: AbstractNLPModel; kwargs...)
 end
 
 function percival(::Val{:tron}, nlp :: AbstractNLPModel;
-                  max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=-1,
+                  max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=100000,
                   atol :: Real = 1e-8, rtol :: Real = 1e-8,
                   subsolver_logger :: AbstractLogger=NullLogger(),
                  )
@@ -88,7 +88,7 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
   @info log_row(Any[iter, fx, normgp, normcx])
 
   solved = normgp ≤ ϵd && normcx ≤ ϵp
-  tired = iter > max_iter || el_time > max_time
+  tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval
 
   while !(solved || tired)
     # solve subproblem
@@ -115,7 +115,7 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
     iter += 1
     el_time = time() - start_time
     solved = normgp ≤ ϵd && normcx ≤ ϵp
-    tired = iter > max_iter || el_time > max_time
+    tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval
 
     @info log_row(Any[iter, fx, normgp, normcx])
   end
@@ -128,6 +128,9 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
     end
     if el_time > max_time
       status = :max_time
+    end
+    if neval_obj(nlp) > max_eval
+      status = :max_eval
     end
   end
 
