@@ -55,7 +55,7 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
   x = T.(x)
 
   gp = zeros(T, nlp.meta.nvar)
-  Jx = jac(nlp, x)
+  Jx = jac_op(nlp, x)
   fx, gx = objgrad(nlp, x)
   lvar = eltype(nlp.meta.lvar) == T ? nlp.meta.lvar : T.(nlp.meta.lvar)
   uvar = eltype(nlp.meta.uvar) == T ? nlp.meta.uvar : T.(nlp.meta.uvar)
