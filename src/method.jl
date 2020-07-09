@@ -85,29 +85,48 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
   start_time = time()
   el_time = 0.0
 
-  @info log_header([:iter, :fx, :normgp, :normcx, :μ, :normy, :sumc], [Int, Float64, Float64, Float64, Float64, Float64, Int])
+  @info log_header([:iter, :fx, :normgp, :normcx, :μ, :normy, :sumc, :inner_status, :iter_type],
+                   [Int, Float64, Float64, Float64, Float64, Float64, Int, Symbol, Symbol])
   @info log_row(Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), sum_counters(nlp)])
 
   solved = normgp ≤ ϵd && normcx ≤ ϵp
+  infeasible = false
   tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval
 
-  while !(solved || tired)
+  while !(solved || infeasible || tired)
     # solve subproblem
     S = with_logger(subsolver_logger) do
-      tron(al_nlp, x = copy(al_nlp.x), rtol=0.0, atol=ω)
+      tron(al_nlp, x = copy(al_nlp.x), rtol=ω, atol=ω, max_time=max_time-el_time)
+    end
+    inner_status = S.status
+
+    if normcx ≤ ϵp && inner_status != :success
+      Hx = hess_op(nlp, al_nlp.x, -al_nlp.μc_y)
+      Jx = jac_op(nlp,  al_nlp.x)
+      zerop = opZeros(nlp.meta.ncon, nlp.meta.ncon)
+      W = [Hx  -Jx'; -Jx  zerop]
+      cx = al_nlp.cx
+      rhs = [-gp; cx]
+      Δxy = symmlq(W, rhs)[1]
+      Δx = Δxy[1:nlp.meta.nvar]
+      project_step!(Δx, al_nlp.x, -Δx, lvar, uvar)
+      update_cx!(al_nlp, al_nlp.x + Δx)
+      inner_status = :safeguard
     end
 
     normcx = norm(al_nlp.cx)
     fx = S.objective + dot(al_nlp.y, al_nlp.cx) - normcx^2 * al_nlp.μ / 2
 
-    if normcx <= η
+    iter_type = if normcx <= η
       update_y!(al_nlp)
-      η /= al_nlp.μ^T(0.9)
+      η = max(η / al_nlp.μ^T(0.9), ϵp)
       ω /= al_nlp.μ
+      :update_y
     else
       update_μ!(al_nlp, 100 * al_nlp.μ)
-      η = 1 / al_nlp.μ^T(0.1)
+      η = max(1 / al_nlp.μ^T(0.1), ϵp)
       ω = 1 / al_nlp.μ
+      :update_μ
     end
 
     # stationarity measure
@@ -118,22 +137,25 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
     iter += 1
     el_time = time() - start_time
     solved = normgp ≤ ϵd && normcx ≤ ϵp
-    tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval
+    infeasible = al_nlp.μ > 1e16 && norm(jtprod(nlp, al_nlp.x, al_nlp.cx)) < √ϵp * normcx
+    tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval || al_nlp.μ > 1e16
 
-    @info log_row(Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), sum_counters(nlp)])
+    @info log_row(Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), sum_counters(nlp), inner_status, iter_type])
   end
 
   if solved
     status = :first_order
+  elseif infeasible
+    status = :infeasible
   elseif tired
     if iter > max_iter
       status = :max_iter
-    end
-    if el_time > max_time
+    elseif el_time > max_time
       status = :max_time
-    end
-    if neval_obj(nlp) > max_eval
+    elseif neval_obj(nlp) > max_eval
       status = :max_eval
+    elseif al_nlp.μ > 1e16
+      status = :stalled
     end
   end
 
