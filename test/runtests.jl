@@ -37,7 +37,7 @@ function test()
                                 [4.0; 3.0]
                                )
                               ]
-      nlp = ADNLPModel(f, x0, c=c, lcon=zeros(m), ucon=zeros(m))
+      nlp = ADNLPModel(f, x0, c, zeros(m), zeros(m))
       output = with_logger(NullLogger()) do
         percival(nlp)
       end
@@ -81,7 +81,7 @@ function test()
                                             [3.0; 4.0]
                                            )
                                           ]
-      nlp = ADNLPModel(f, x0, lvar=lvar, uvar=uvar, c=c, lcon=zeros(m), ucon=zeros(m))
+      nlp = ADNLPModel(f, x0, lvar, uvar, c, zeros(m), zeros(m))
       output = with_logger(NullLogger()) do
         percival(nlp)
       end
@@ -125,7 +125,7 @@ function test()
                                             [5.196152; 1.732051]
                                            )
                                           ]
-      nlp = ADNLPModel(f, x0, c=c, lcon=lcon, ucon=ucon)
+      nlp = ADNLPModel(f, x0, c, lcon, ucon)
       output = with_logger(NullLogger()) do
         percival(nlp)
       end
