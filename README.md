@@ -21,3 +21,11 @@ Use `]` to enter `pkg>` mode of Julia, then
 ```julia
 pkg> add https://github.com/JuliaSmoothOptimizers/Percival.jl
 ```
+## Use with JuMP
+
+You can solve an JuMP model `m` by using NLPModels to convert it.
+```
+using NLPModels, Percival
+nlp = MathOptNLPModel(m)
+output = percival(nlp)
+```
