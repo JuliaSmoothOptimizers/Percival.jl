@@ -42,7 +42,7 @@ end
 
 function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.meta.x0)(10.0),
             max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=100000,
-            atol :: Real = 1e-8, rtol :: Real = 1e-8,
+            atol :: Real = 1e-8, rtol :: Real = 1e-8, ctol :: Real = 1e-8,
             subsolver_logger :: AbstractLogger=NullLogger(),
            )
   if nlp.meta.ncon == 0 || !equality_constrained(nlp)
@@ -51,14 +51,18 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
 
   T = eltype(nlp.meta.x0)
 
+  lvar = eltype(nlp.meta.lvar) == T ? nlp.meta.lvar : T.(nlp.meta.lvar)
+  uvar = eltype(nlp.meta.uvar) == T ? nlp.meta.uvar : T.(nlp.meta.uvar)
+
+  counter_cost(nlp) = neval_obj(nlp) + 2 * neval_grad(nlp)
+
   x = copy(nlp.meta.x0)
-  x = T.(x)
+  x .= max.(lvar, min.(x, uvar))
 
   gp = zeros(T, nlp.meta.nvar)
   Jx = jac_op(nlp, x)
   fx, gx = objgrad(nlp, x)
-  lvar = eltype(nlp.meta.lvar) == T ? nlp.meta.lvar : T.(nlp.meta.lvar)
-  uvar = eltype(nlp.meta.uvar) == T ? nlp.meta.uvar : T.(nlp.meta.uvar)
+  
 
   # Lagrange multiplier
   y = with_logger(subsolver_logger) do
@@ -79,7 +83,7 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
 
   # tolerance for optimal measure
   ϵd = atol + rtol * normgp
-  ϵp = atol
+  ϵp = ctol
 
   iter = 0
   start_time = time()
@@ -87,7 +91,7 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
 
   @info log_header([:iter, :fx, :normgp, :normcx, :μ, :normy, :sumc, :inner_status, :iter_type],
                    [Int, Float64, Float64, Float64, Float64, Float64, Int, Symbol, Symbol])
-  @info log_row(Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), sum_counters(nlp)])
+  @info log_row(Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), counter_cost(nlp)])
 
   solved = normgp ≤ ϵd && normcx ≤ ϵp
   infeasible = false
@@ -96,23 +100,9 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
   while !(solved || infeasible || tired)
     # solve subproblem
     S = with_logger(subsolver_logger) do
-      tron(al_nlp, x = copy(al_nlp.x), rtol=ω, atol=ω, max_time=max_time-el_time)
+      tron(al_nlp, x=copy(al_nlp.x), cgtol=ω, rtol=ω, atol=ω, max_time=max_time-el_time)
     end
     inner_status = S.status
-
-    if normcx ≤ ϵp && inner_status != :success
-      Hx = hess_op(nlp, al_nlp.x, -al_nlp.μc_y)
-      Jx = jac_op(nlp,  al_nlp.x)
-      zerop = opZeros(nlp.meta.ncon, nlp.meta.ncon)
-      W = [Hx  -Jx'; -Jx  zerop]
-      cx = al_nlp.cx
-      rhs = [-gp; cx]
-      Δxy = symmlq(W, rhs)[1]
-      Δx = Δxy[1:nlp.meta.nvar]
-      project_step!(Δx, al_nlp.x, -Δx, lvar, uvar)
-      update_cx!(al_nlp, al_nlp.x + Δx)
-      inner_status = :safeguard
-    end
 
     normcx = norm(al_nlp.cx)
     fx = S.objective + dot(al_nlp.y, al_nlp.cx) - normcx^2 * al_nlp.μ / 2
@@ -123,7 +113,7 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
       ω /= al_nlp.μ
       :update_y
     else
-      update_μ!(al_nlp, 100 * al_nlp.μ)
+      update_μ!(al_nlp, 10 * al_nlp.μ)
       η = max(1 / al_nlp.μ^T(0.1), ϵp)
       ω = 1 / al_nlp.μ
       :update_μ
@@ -140,7 +130,7 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
     infeasible = al_nlp.μ > 1e16 && norm(jtprod(nlp, al_nlp.x, al_nlp.cx)) < √ϵp * normcx
     tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval || al_nlp.μ > 1e16
 
-    @info log_row(Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), sum_counters(nlp), inner_status, iter_type])
+    @info log_row(Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), counter_cost(nlp), inner_status, iter_type])
   end
 
   if solved

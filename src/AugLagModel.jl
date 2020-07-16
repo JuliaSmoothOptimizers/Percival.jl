@@ -95,26 +95,3 @@ function NLPModels.hprod!(nlp :: AugLagModel, x :: AbstractVector, v :: Abstract
   Hv .+= nlp.μ * nlp.store_JtJv
   return Hv
 end
-
-#function NLPModels.hess_structure!(nlp :: AugLagModel, rows :: AbstractVector{<: Integer}, cols :: AbstractVector{<: Integer})
-#  return hess_structure!(nlp.model, rows, cols) # because is the same structure of hessian of f(x)
-#end
-
-#=
-function NLPModels.hess_coord!(nlp :: AugLagModel, x :: AbstractVector, rows :: AbstractVector{<: Integer}, cols :: AbstractVector{<: Integer},
-                    vals :: AbstractVector; obj_weight :: Float64 = 1.0)
-  # Hessian of auglag
-  Hx = NLPModels.hess(nlp, x, obj_weight = obj_weight)
-
-  # accessing by columns and storing elements in vals
-  k = 1
-  for j = 1 : nlp.meta.nvar
-    for i = j : nlp.meta.nvar
-      vals[k] = Hx[i, j] # in place not working
-      k += 1
-    end
-  end
-
-  return rows, cols, vals
-end
-=#
