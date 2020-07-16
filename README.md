@@ -25,7 +25,7 @@ pkg> add https://github.com/JuliaSmoothOptimizers/Percival.jl
 
 You can solve an JuMP model `m` by using NLPModels to convert it.
 ```
-using NLPModels, Percival
+using NLPModelsJuMP, Percival
 nlp = MathOptNLPModel(m)
 output = percival(nlp)
 ```
