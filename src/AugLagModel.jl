@@ -15,20 +15,24 @@ mutable struct AugLagModel{M <: AbstractNLPModel, T <: AbstractFloat, V <: Abstr
   counters :: Counters
   model :: M
   y     :: V
-  μ    :: T
+  μ     :: T
   x     :: V # save last iteration of subsolver
   cx    :: V # save last constraint value of subsolver
-  μc_y :: V # y - μ * cx
+  μc_y  :: V # y - μ * cx
+  store_Jv   :: Vector{T}
+  store_JtJv :: Vector{T}
 end
 
 function AugLagModel(model :: AbstractNLPModel, y :: AbstractVector, μ :: AbstractFloat, x :: AbstractVector, cx :: AbstractVector)
-  @lencheck model.meta.ncon y cx
-  @lencheck model.meta.nvar x
+  nvar, ncon = model.meta.nvar, model.meta.ncon
+  @lencheck ncon y cx
+  @lencheck nvar x
   μ ≥ 0 || error("Penalty parameter μ should be ≥ 0")
 
-  meta = NLPModelMeta(model.meta.nvar, x0=model.meta.x0, lvar=model.meta.lvar, uvar=model.meta.uvar)
+  meta = NLPModelMeta(nvar, x0=model.meta.x0, lvar=model.meta.lvar, uvar=model.meta.uvar)
+  T = eltype(x)
 
-  return AugLagModel(meta, Counters(), model, y, μ, x, cx, y - μ * cx)
+  return AugLagModel(meta, Counters(), model, y, μ, x, cx, y - μ * cx, zeros(T, ncon), zeros(T, nvar))
 end
 
 function update_cx!(nlp :: AbstractNLPModel, x :: AbstractVector)
@@ -85,30 +89,9 @@ function NLPModels.hprod!(nlp :: AugLagModel, x :: AbstractVector, v :: Abstract
   @lencheck nlp.meta.nvar Hv
   increment!(nlp, :neval_hprod)
   update_cx!(nlp, x)
-  Jv = jprod(nlp.model, x, v)
-  Hv .= hprod(nlp.model, x, nlp.μc_y, v, obj_weight = obj_weight) + nlp.μ * jtprod(nlp.model, x, Jv)
+  jprod!(nlp.model, x, v, nlp.store_Jv)
+  jtprod!(nlp.model, x, nlp.store_Jv, nlp.store_JtJv)
+  hprod!(nlp.model, x, nlp.μc_y, v, Hv, obj_weight = obj_weight)
+  Hv .+= nlp.μ * nlp.store_JtJv
   return Hv
 end
-
-#function NLPModels.hess_structure!(nlp :: AugLagModel, rows :: AbstractVector{<: Integer}, cols :: AbstractVector{<: Integer})
-#  return hess_structure!(nlp.model, rows, cols) # because is the same structure of hessian of f(x)
-#end
-
-#=
-function NLPModels.hess_coord!(nlp :: AugLagModel, x :: AbstractVector, rows :: AbstractVector{<: Integer}, cols :: AbstractVector{<: Integer},
-                    vals :: AbstractVector; obj_weight :: Float64 = 1.0)
-  # Hessian of auglag
-  Hx = NLPModels.hess(nlp, x, obj_weight = obj_weight)
-
-  # accessing by columns and storing elements in vals
-  k = 1
-  for j = 1 : nlp.meta.nvar
-    for i = j : nlp.meta.nvar
-      vals[k] = Hx[i, j] # in place not working
-      k += 1
-    end
-  end
-
-  return rows, cols, vals
-end
-=#

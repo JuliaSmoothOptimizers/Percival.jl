@@ -42,7 +42,7 @@ end
 
 function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.meta.x0)(10.0),
             max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=100000,
-            atol :: Real = 1e-8, rtol :: Real = 1e-8,
+            atol :: Real = 1e-8, rtol :: Real = 1e-8, ctol :: Real = 1e-8,
             subsolver_logger :: AbstractLogger=NullLogger(),
            )
   if nlp.meta.ncon == 0 || !equality_constrained(nlp)
@@ -51,14 +51,18 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
 
   T = eltype(nlp.meta.x0)
 
+  lvar = eltype(nlp.meta.lvar) == T ? nlp.meta.lvar : T.(nlp.meta.lvar)
+  uvar = eltype(nlp.meta.uvar) == T ? nlp.meta.uvar : T.(nlp.meta.uvar)
+
+  counter_cost(nlp) = neval_obj(nlp) + 2 * neval_grad(nlp)
+
   x = copy(nlp.meta.x0)
-  x = T.(x)
+  x .= max.(lvar, min.(x, uvar))
 
   gp = zeros(T, nlp.meta.nvar)
   Jx = jac_op(nlp, x)
   fx, gx = objgrad(nlp, x)
-  lvar = eltype(nlp.meta.lvar) == T ? nlp.meta.lvar : T.(nlp.meta.lvar)
-  uvar = eltype(nlp.meta.uvar) == T ? nlp.meta.uvar : T.(nlp.meta.uvar)
+  
 
   # Lagrange multiplier
   y = with_logger(subsolver_logger) do
@@ -66,6 +70,7 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
   end
   # tolerance
   η = 0.5
+  ω = 1.0
 
   # create initial subproblem
   al_nlp = AugLagModel(nlp, y, T(μ), x, cons(nlp, x))
@@ -78,33 +83,40 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
 
   # tolerance for optimal measure
   ϵd = atol + rtol * normgp
-  ϵp = atol
+  ϵp = ctol
 
   iter = 0
   start_time = time()
   el_time = 0.0
 
-  @info log_header([:iter, :fx, :normgp, :normcx], [Int, Float64, Float64, Float64])
-  @info log_row(Any[iter, fx, normgp, normcx])
+  @info log_header([:iter, :fx, :normgp, :normcx, :μ, :normy, :sumc, :inner_status, :iter_type],
+                   [Int, Float64, Float64, Float64, Float64, Float64, Int, Symbol, Symbol])
+  @info log_row(Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), counter_cost(nlp)])
 
   solved = normgp ≤ ϵd && normcx ≤ ϵp
+  infeasible = false
   tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval
 
-  while !(solved || tired)
+  while !(solved || infeasible || tired)
     # solve subproblem
     S = with_logger(subsolver_logger) do
-      tron(al_nlp, x = copy(al_nlp.x))
+      tron(al_nlp, x=copy(al_nlp.x), cgtol=ω, rtol=ω, atol=ω, max_time=max_time-el_time)
     end
+    inner_status = S.status
 
     normcx = norm(al_nlp.cx)
     fx = S.objective + dot(al_nlp.y, al_nlp.cx) - normcx^2 * al_nlp.μ / 2
 
-    if normcx <= η
+    iter_type = if normcx <= η
       update_y!(al_nlp)
-      η /= al_nlp.μ^T(0.9)
+      η = max(η / al_nlp.μ^T(0.9), ϵp)
+      ω /= al_nlp.μ
+      :update_y
     else
-      update_μ!(al_nlp, 100 * al_nlp.μ)
-      η = 1 / al_nlp.μ^T(0.1)
+      update_μ!(al_nlp, 10 * al_nlp.μ)
+      η = max(1 / al_nlp.μ^T(0.1), ϵp)
+      ω = 1 / al_nlp.μ
+      :update_μ
     end
 
     # stationarity measure
@@ -115,22 +127,25 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
     iter += 1
     el_time = time() - start_time
     solved = normgp ≤ ϵd && normcx ≤ ϵp
-    tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval
+    infeasible = al_nlp.μ > 1e16 && norm(jtprod(nlp, al_nlp.x, al_nlp.cx)) < √ϵp * normcx
+    tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval || al_nlp.μ > 1e16
 
-    @info log_row(Any[iter, fx, normgp, normcx])
+    @info log_row(Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), counter_cost(nlp), inner_status, iter_type])
   end
 
   if solved
     status = :first_order
+  elseif infeasible
+    status = :infeasible
   elseif tired
     if iter > max_iter
       status = :max_iter
-    end
-    if el_time > max_time
+    elseif el_time > max_time
       status = :max_time
-    end
-    if neval_obj(nlp) > max_eval
+    elseif neval_obj(nlp) > max_eval
       status = :max_eval
+    elseif al_nlp.μ > 1e16
+      status = :stalled
     end
   end
 
