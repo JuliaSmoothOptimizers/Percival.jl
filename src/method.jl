@@ -36,10 +36,19 @@ function percival(::Val{:ineq}, nlp :: AbstractNLPModel; kwargs...)
   return output
 end
 
-"""Implementation of an augmented Lagrangian method for:
+"""
+    percival(nlp)
 
-  min f(x)  s.t.  c(x) = 0, l ≦ x ≦ u"""
-
+Implementation of an augmented Lagrangian method. The following keyword parameters can be passed:
+- μ: Starting value of the penalty parameter (default: 10.0)
+- atol: Absolute tolerance used in dual feasibility measure (default: 1e-8)
+- rtol: Relative tolerance used in dual feasibility measure (default: 1e-8)
+- ctol: (Absolute) tolerance used in primal feasibility measure (default: 1e-8)
+- max_iter: Maximum number of iterations (default: 1000)
+- max_time: Maximum elapsed time in seconds (default: 30.0)
+- max_eval: Maximum number of objective function evaluations (default: 100000)
+- subsolver_logger: Logger passed to `tron` (default: NullLogger)
+"""
 function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.meta.x0)(10.0),
             max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=100000,
             atol :: Real = 1e-8, rtol :: Real = 1e-8, ctol :: Real = 1e-8,

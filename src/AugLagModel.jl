@@ -3,13 +3,30 @@ export AugLagModel, update_cx!, update_y!, update_μ!
 using NLPModels, LinearAlgebra, LinearOperators
 using NLPModels: increment!, @lencheck # @lencheck is not exported in 0.12.0
 
-"""Given a model
-  min f(x)  s.t.  c(x) = 0, l ≦ x ≦ u,
-this new model represents the subproblem of the augmented Lagrangian method
-  min f(x) - y'*c(x) + μ/2*‖c(x)‖^2  s.t.  l ≦ x ≦ u,
-where y is an estimates of the Lagrange multiplier vector and μ is the penalty parameter.
-"""
+@doc raw"""
+    AugLagModel(model, y, μ, x, cx)
 
+Given a model
+```math
+\min \ f(x) \quad s.t. \quad c(x) = 0, \quad l ≤ x ≤ u,
+```
+this new model represents the subproblem of the augmented Lagrangian method
+```math
+\min \ f(x) - yᵀc(x) + \tfrac{1}{2} μ \|c(x)\|^2 \quad s.t. \quad l ≤ x ≤ u,
+```
+where y is an estimates of the Lagrange multiplier vector and μ is the penalty parameter.
+
+In addition to keeping `meta` and `counters` as any NLPModel, an AugLagModel also stores
+- `model`: The internal model defining ``f``, ``c`` and the bounds,
+- `y`: The multipliers estimate,
+- `μ`: The penalty parameter,
+- `x`: Reference to the last point at which the function `c(x)` was computed,
+- `cx`: Reference to `c(x)`,
+- `μc_y`: storage for y - μ * cx,
+- `store_Jv` and `store_JtJv`: storage used in `hprod!`.
+
+Use the functions `update_cx!`, `update_y!` and `update_μ!` to update these values.
+"""
 mutable struct AugLagModel{M <: AbstractNLPModel, T <: AbstractFloat, V <: AbstractVector} <: AbstractNLPModel
   meta :: NLPModelMeta
   counters :: Counters
@@ -35,7 +52,13 @@ function AugLagModel(model :: AbstractNLPModel, y :: AbstractVector, μ :: Abstr
   return AugLagModel(meta, Counters(), model, y, μ, x, cx, y - μ * cx, zeros(T, ncon), zeros(T, nvar))
 end
 
-function update_cx!(nlp :: AbstractNLPModel, x :: AbstractVector)
+"""
+    update_cx!(nlp, x)
+
+Given an `AugLagModel`, if `x != nlp.x`, then updates the internal value `nlp.cx` calling `cons`
+on `nlp.model`. Also updates `nlp.μc_y`.
+"""
+function update_cx!(nlp :: AugLagModel, x :: AbstractVector)
   @lencheck nlp.meta.nvar x
   if x != nlp.x
     cons!(nlp.model, x, nlp.cx)
@@ -44,12 +67,22 @@ function update_cx!(nlp :: AbstractNLPModel, x :: AbstractVector)
   end
 end
 
-function update_y!(nlp :: AbstractNLPModel)
+"""
+    update_y!(nlp)
+
+Given an `AugLagModel`, update `nlp.y = -nlp.μc_y` and updates `nlp.μc_y` accordingly.
+"""
+function update_y!(nlp :: AugLagModel)
   nlp.y .= -nlp.μc_y
   nlp.μc_y .= nlp.μ .* nlp.cx .- nlp.y
 end
 
-function update_μ!(nlp :: AbstractNLPModel, μ :: AbstractFloat)
+"""
+    update_μ!(nlp, μ)
+
+Given an `AugLagModel`, updates `nlp.μ = μ` and `nlp.μc_y` accordingly.
+"""
+function update_μ!(nlp :: AugLagModel, μ :: AbstractFloat)
   nlp.μ = μ
   nlp.μc_y .= nlp.μ .* nlp.cx .- nlp.y
 end
