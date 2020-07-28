@@ -1,0 +1,24 @@
+{
+  "description": "An augmented Lagrangian method",
+  "license": "MPL-2.0",
+  "title": "Percival.jl",
+  "upload_type": "software",
+  "creators": [
+    {
+      "affiliation": "Federal University of Paran\u00e1 - UFPR",
+      "name": "Egmara Antunes dos Santos"
+    },
+    {
+      "affiliation": "Federal University of Paran\u00e1 - UFPR",
+      "name": "Abel Soares Siqueira"
+    }
+  ],
+  "access_right": "open",
+  "related_identifiers": [
+    {
+      "scheme": "url",
+      "identifier": "https://github.com/JuliaSmoothOptimizers/Percival.jl/releases/latest",
+      "relation": "isSupplementTo"
+    }
+  ]
+}
