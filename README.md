@@ -2,7 +2,8 @@
 
 [![Build Status](https://travis-ci.org/JuliaSmoothOptimizers/Percival.jl.svg?branch=master)](https://travis-ci.org/JuliaSmoothOptimizers/Percival.jl)
 [![Coveralls](https://coveralls.io/repos/JuliaSmoothOptimizers/Percival.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaSmoothOptimizers/Percival.jl?branch=master)
-[![docs](https://img.shields.io/badge/docs-latest-3f51b5.svg)](https://JuliaSmoothOptimizers.github.io/Percival.jl/latest)
+[![docs-latest](https://img.shields.io/badge/docs-latest-3f51b5.svg)](https://JuliaSmoothOptimizers.github.io/Percival.jl/latest)
+[![docs-dev](https://img.shields.io/badge/docs-dev-3f51b5.svg)](https://JuliaSmoothOptimizers.github.io/Percival.jl/dev)
 
 Percival is an implementation of the augmented Lagrangian solver described in
 
