@@ -4,6 +4,7 @@
 [![Coveralls](https://coveralls.io/repos/JuliaSmoothOptimizers/Percival.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaSmoothOptimizers/Percival.jl?branch=master)
 [![docs-latest](https://img.shields.io/badge/docs-latest-3f51b5.svg)](https://JuliaSmoothOptimizers.github.io/Percival.jl/latest)
 [![docs-dev](https://img.shields.io/badge/docs-dev-3f51b5.svg)](https://JuliaSmoothOptimizers.github.io/Percival.jl/dev)
+[![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.3969045-blue.svg?style=flat)](https://doi.org/10.5281/zenodo.3969045)
 
 Percival is an implementation of the augmented Lagrangian solver described in
 
@@ -13,6 +14,10 @@ Percival is an implementation of the augmented Lagrangian solver described in
 
 with internal solver `tron` from [JSOSolvers.jl](https://github.com/JuliaSmoothOptimizers/JSOSolvers.jl).
 To use Percival, you have to pass it an [NLPModel](https://github.com/JuliaSmoothOptimizers/NLPModels.jl).
+
+## How to Cite
+
+If you use Percival.jl in your work, please cite using the format given in [CITATION.bib](CITATION.bib).
 
 ## Install
 
