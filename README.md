@@ -1,7 +1,7 @@
 # Percival.jl - An augmented Lagrangian solver
 
-[![Build Status](https://travis-ci.org/JuliaSmoothOptimizers/Percival.jl.svg?branch=master)](https://travis-ci.org/JuliaSmoothOptimizers/Percival.jl)
-[![Coveralls](https://coveralls.io/repos/JuliaSmoothOptimizers/Percival.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaSmoothOptimizers/Percival.jl?branch=master)
+[![CI](https://github.com/JuliaSmoothOptimizers/Percival.jl/workflows/CI/badge.svg?branch=master)](https://github.com/JuliaSmoothOptimizers/Percival.jl/actions)
+[![codecov.io](https://codecov.io/github/JuliaSmoothOptimizers/Percival.jl/coverage.svg?branch=master)](https://codecov.io/github/JuliaSmoothOptimizers/Percival.jl?branch=master)
 [![docs-latest](https://img.shields.io/badge/docs-latest-3f51b5.svg)](https://JuliaSmoothOptimizers.github.io/Percival.jl/latest)
 [![docs-dev](https://img.shields.io/badge/docs-dev-3f51b5.svg)](https://JuliaSmoothOptimizers.github.io/Percival.jl/dev)
 [![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.3969045-blue.svg?style=flat)](https://doi.org/10.5281/zenodo.3969045)
