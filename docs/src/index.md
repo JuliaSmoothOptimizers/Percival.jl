@@ -33,7 +33,7 @@ How to solve the simple problem
 ```
 
 ```@example
-using NLPModels, Percival
+using ADNLPModels, Percival
 
 nlp = ADNLPModel(
     x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2,

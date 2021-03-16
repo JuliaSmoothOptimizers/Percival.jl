@@ -1,6 +1,6 @@
 export AugLagModel, update_cx!, update_y!, update_μ!
 
-using NLPModels, LinearAlgebra, LinearOperators
+using NLPModels, NLPModelsModifiers, LinearAlgebra, LinearOperators
 using NLPModels: increment!, @lencheck # @lencheck is not exported in 0.12.0
 
 @doc raw"""
