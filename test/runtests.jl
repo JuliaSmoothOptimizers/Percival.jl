@@ -1,6 +1,6 @@
 using Percival
 
-using JSOSolvers, LinearAlgebra, Logging, SparseArrays, Test
+using ADNLPModels, JSOSolvers, LinearAlgebra, Logging, SparseArrays, Test
 
 const jsosolvers_folder = joinpath(dirname(pathof(JSOSolvers)), "..", "test", "solvers")
 include(joinpath(jsosolvers_folder, "unconstrained.jl"))
