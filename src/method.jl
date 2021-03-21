@@ -48,6 +48,7 @@ Implementation of an augmented Lagrangian method. The following keyword paramete
 - max_time: Maximum elapsed time in seconds (default: 30.0)
 - max_eval: Maximum number of objective function evaluations (default: 100000)
 - subsolver_logger: Logger passed to `tron` (default: NullLogger)
+- inity: Initial values of the Lagrangian multipliers
 """
 function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.meta.x0)(10.0),
             max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=100000,
