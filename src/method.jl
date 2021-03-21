@@ -52,7 +52,7 @@ Implementation of an augmented Lagrangian method. The following keyword paramete
 function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.meta.x0)(10.0),
             max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=100000,
             atol :: Real = 1e-8, rtol :: Real = 1e-8, ctol :: Real = 1e-8,
-            subsolver_logger :: AbstractLogger=NullLogger(),
+            subsolver_logger :: AbstractLogger=NullLogger(), inity = nothing,
            )
   if nlp.meta.ncon == 0 || !equality_constrained(nlp)
     error("percival(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use percival(nlp)")
@@ -74,9 +74,9 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
   
 
   # Lagrange multiplier
-  y = with_logger(subsolver_logger) do
+  y = inity === nothing ? with_logger(subsolver_logger) do
     cgls(Jx', gx)[1]
-  end
+  end : inity
   # tolerance
   η = 0.5
   ω = 1.0
