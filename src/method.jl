@@ -1,6 +1,6 @@
 export percival
 
-using Logging, SolverTools, NLPModels
+using Logging, SolverCore, SolverTools, NLPModels
 
 using JSOSolvers, Krylov
 
@@ -72,7 +72,7 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
   gp = zeros(T, nlp.meta.nvar)
   Jx = jac_op(nlp, x)
   fx, gx = objgrad(nlp, x)
-  
+
 
   # Lagrange multiplier
   y = inity === nothing ? with_logger(subsolver_logger) do
@@ -83,7 +83,7 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
   ω = 1.0
 
   # create initial subproblem
-  al_nlp = AugLagModel(nlp, y, T(μ), x, cons(nlp, x))
+  al_nlp = AugLagModel(nlp, y, T(μ), x, cons(nlp, x) - nlp.meta.lcon)
 
   # stationarity measure
   gL =  grad(nlp, x) - jtprod(nlp, x, y)

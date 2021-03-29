@@ -18,7 +18,7 @@ It was implemented as part of the Master's dissertation of Egmara Antunes.
 
 ### JSO-compliant
 
-The `percival` method expects a single mandatory argument - an [NLPModel](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) - and returns a GenericExecutionStats from [SolverTools.jl](https://github.com/JuliaSmoothOptimizers/SolverTools.jl).
+The `percival` method expects a single mandatory argument - an [NLPModel](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) - and returns a GenericExecutionStats from [SolverCore.jl](https://github.com/JuliaSmoothOptimizers/SolverCore.jl).
 
 ### Main exported functions and types
 

@@ -1,19 +1,16 @@
 using Percival
 
-using ADNLPModels, JSOSolvers, LinearAlgebra, Logging, SparseArrays, Test
-
-const jsosolvers_folder = joinpath(dirname(pathof(JSOSolvers)), "..", "test", "solvers")
-include(joinpath(jsosolvers_folder, "unconstrained.jl"))
-include(joinpath(jsosolvers_folder, "bound-constrained.jl"))
+using ADNLPModels, JSOSolvers, LinearAlgebra, Logging, SolverTest, SparseArrays, Test
 
 using NLPModels
 
 function test()
-  # unconstrained tests from JSOSolvers
-  test_unconstrained_solver(percival)
-
-  # Bound constrained tests from JSOSolvers
-  test_bound_constrained_solver(percival)
+  @testset "Unconstrained tests" begin
+    unconstrained_nlp(percival)
+  end
+  @testset "Bound-constrained tests" begin
+    bound_constrained_nlp(percival)
+  end
 
   @testset "Small equality constrained problems" begin
     for (x0, m, f, c, sol) in [([1.0; 2.0], 1,
