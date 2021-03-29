@@ -62,6 +62,7 @@ function update_cx!(nlp :: AugLagModel, x :: AbstractVector)
   @lencheck nlp.meta.nvar x
   if x != nlp.x
     cons!(nlp.model, x, nlp.cx)
+    nlp.cx .-= nlp.model.meta.lcon
     nlp.x .= x
     nlp.μc_y .= nlp.μ .* nlp.cx .- nlp.y
   end
@@ -116,7 +117,7 @@ function NLPModels.objgrad!(nlp :: AugLagModel, x :: AbstractVector, g :: Abstra
   return f, g
 end
 
-function NLPModels.hprod!(nlp :: AugLagModel, x :: AbstractVector, v :: AbstractVector, Hv :: AbstractVector; obj_weight :: Float64 = 1.0)
+function NLPModels.hprod!(nlp :: AugLagModel, x :: AbstractVector, v :: AbstractVector, Hv :: AbstractVector; obj_weight :: Real = one(eltype(x)))
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.nvar v
   @lencheck nlp.meta.nvar Hv
