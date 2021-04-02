@@ -37,7 +37,7 @@ function test()
                               ]
       nlp = ADNLPModel(f, x0, c, zeros(m), zeros(m))
       output = with_logger(NullLogger()) do
-        percival(nlp, rtol = 1e-6)
+        percival(nlp)
       end
 
       @test isapprox(output.solution, sol, rtol=1e-6)
@@ -48,7 +48,7 @@ function test()
       # LBFGS approximation of the augmented Lagrangian
       output = with_logger(NullLogger()) do
         modifier = m -> NLPModelsModifiers.LBFGSModel(m, mem = lbfgs_mem)
-        percival(nlp, modifier = modifier, rtol = 1e-6)
+        percival(nlp, modifier = modifier)
       end
 
       @test isapprox(output.solution, sol, rtol=1e-6)
@@ -92,7 +92,7 @@ function test()
                                           ]
       nlp = ADNLPModel(f, x0, lvar, uvar, c, zeros(m), zeros(m))
       output = with_logger(NullLogger()) do
-        percival(nlp, rtol = 1e-6)
+        percival(nlp)
       end
 
       @test isapprox(output.solution, sol, rtol=1e-6)
@@ -103,7 +103,7 @@ function test()
       # LBFGS approximation of the augmented Lagrangian
       output = with_logger(NullLogger()) do
         modifier = m -> NLPModelsModifiers.LBFGSModel(m, mem = lbfgs_mem)
-        percival(nlp, modifier = modifier, rtol = 1e-6)
+        percival(nlp, modifier = modifier)
       end
 
       @test isapprox(output.solution, sol, rtol=1e-6)
@@ -147,7 +147,7 @@ function test()
                                           ]
       nlp = ADNLPModel(f, x0, c, lcon, ucon)
       output = with_logger(NullLogger()) do
-        percival(nlp, rtol = 1e-6)
+        percival(nlp)
       end
 
       @test isapprox(output.solution, sol, rtol=1e-6)
@@ -158,7 +158,7 @@ function test()
       # LBFGS approximation of the augmented Lagrangian
       output = with_logger(NullLogger()) do
         modifier = m -> NLPModelsModifiers.LBFGSModel(m, mem = lbfgs_mem)
-        percival(nlp, modifier = modifier, rtol = 1e-6)
+        percival(nlp, modifier = modifier)
       end
 
       @test isapprox(output.solution, sol, rtol=1e-6)
