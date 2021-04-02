@@ -15,7 +15,7 @@ function percival(nlp :: AbstractNLPModel; kwargs...)
 end
 
 function percival(::Val{:tron}, nlp :: AbstractNLPModel;
-                  max_iter :: Int = 2000, max_time :: Real = 30.0, max_eval :: Int = 100000,
+                  max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int = 100000,
                   atol :: Real = 1e-8, rtol :: Real = 1e-8, modifier = identity,
                   subsolver_logger :: AbstractLogger=NullLogger(), max_cgiter ::Int = nlp.meta.nvar
                  )
@@ -51,7 +51,7 @@ Implementation of an augmented Lagrangian method. The following keyword paramete
 - inity: Initial values of the Lagrangian multipliers
 """
 function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.meta.x0)(10.0),
-            max_iter :: Int = 2000, max_time :: Real = 30.0, max_eval :: Int=100000,
+            max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=100000,
             atol :: Real = 1e-8, rtol :: Real = 1e-8, ctol :: Real = 1e-8,
             subsolver_logger :: AbstractLogger=NullLogger(), inity = nothing,
             modifier = identity, max_cgiter = nlp.meta.nvar, tron_max_eval = max_eval,
