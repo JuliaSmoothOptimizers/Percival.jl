@@ -1,10 +1,11 @@
 using Percival
 
-using ADNLPModels, JSOSolvers, LinearAlgebra, Logging, SolverTest, SparseArrays, Test
+using ADNLPModels, JSOSolvers, LinearAlgebra, Logging, SolverTest, SparseArrays, NLPModelsModifiers, Test
 
 using NLPModels
 
 function test()
+  lbfgs_mem = 4
   @testset "Unconstrained tests" begin
     unconstrained_nlp(percival)
   end
@@ -36,7 +37,18 @@ function test()
                               ]
       nlp = ADNLPModel(f, x0, c, zeros(m), zeros(m))
       output = with_logger(NullLogger()) do
-        percival(nlp)
+        percival(nlp, rtol = 1e-6)
+      end
+
+      @test isapprox(output.solution, sol, rtol=1e-6)
+      @test output.primal_feas < 1e-6
+      @test output.dual_feas < 1e-6
+      @test output.status == :first_order
+
+      # LBFGS approximation of the augmented Lagrangian
+      output = with_logger(NullLogger()) do
+        modifier = m -> NLPModelsModifiers.LBFGSModel(m, mem = lbfgs_mem)
+        percival(nlp, modifier = modifier, rtol = 1e-6)
       end
 
       @test isapprox(output.solution, sol, rtol=1e-6)
@@ -80,7 +92,18 @@ function test()
                                           ]
       nlp = ADNLPModel(f, x0, lvar, uvar, c, zeros(m), zeros(m))
       output = with_logger(NullLogger()) do
-        percival(nlp)
+        percival(nlp, rtol = 1e-6)
+      end
+
+      @test isapprox(output.solution, sol, rtol=1e-6)
+      @test output.primal_feas < 1e-6
+      @test output.dual_feas < 1e-6
+      @test output.status == :first_order
+
+      # LBFGS approximation of the augmented Lagrangian
+      output = with_logger(NullLogger()) do
+        modifier = m -> NLPModelsModifiers.LBFGSModel(m, mem = lbfgs_mem)
+        percival(nlp, modifier = modifier, rtol = 1e-6)
       end
 
       @test isapprox(output.solution, sol, rtol=1e-6)
@@ -124,7 +147,18 @@ function test()
                                           ]
       nlp = ADNLPModel(f, x0, c, lcon, ucon)
       output = with_logger(NullLogger()) do
-        percival(nlp)
+        percival(nlp, rtol = 1e-6)
+      end
+
+      @test isapprox(output.solution, sol, rtol=1e-6)
+      @test output.primal_feas < 1e-6
+      @test output.dual_feas < 1e-6
+      @test output.status == :first_order
+
+      # LBFGS approximation of the augmented Lagrangian
+      output = with_logger(NullLogger()) do
+        modifier = m -> NLPModelsModifiers.LBFGSModel(m, mem = lbfgs_mem)
+        percival(nlp, modifier = modifier, rtol = 1e-6)
       end
 
       @test isapprox(output.solution, sol, rtol=1e-6)
@@ -133,7 +167,6 @@ function test()
       @test output.status == :first_order
     end
   end
-
 end
 
 test()
