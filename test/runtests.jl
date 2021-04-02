@@ -48,12 +48,12 @@ function test()
       # LBFGS approximation of the augmented Lagrangian
       output = with_logger(NullLogger()) do
         modifier = m -> NLPModelsModifiers.LBFGSModel(m, mem = lbfgs_mem)
-        percival(nlp, modifier = modifier)
+        percival(nlp, modifier = modifier, rtol = 1e-5)
       end
 
-      @test isapprox(output.solution, sol, rtol=1e-6)
-      @test output.primal_feas < 1e-6
-      @test output.dual_feas < 1e-6
+      @test isapprox(output.solution, sol, rtol=1e-4)
+      @test output.primal_feas < 1e-4
+      @test output.dual_feas < 1e-4
       @test output.status == :first_order
     end
   end
@@ -103,12 +103,12 @@ function test()
       # LBFGS approximation of the augmented Lagrangian
       output = with_logger(NullLogger()) do
         modifier = m -> NLPModelsModifiers.LBFGSModel(m, mem = lbfgs_mem)
-        percival(nlp, modifier = modifier)
+        percival(nlp, modifier = modifier, rtol = 1e-5)
       end
 
-      @test isapprox(output.solution, sol, rtol=1e-6)
-      @test output.primal_feas < 1e-6
-      @test output.dual_feas < 1e-6
+      @test isapprox(output.solution, sol, rtol=1e-4)
+      @test output.primal_feas < 1e-4
+      @test output.dual_feas < 1e-4
       @test output.status == :first_order
     end
   end
@@ -158,12 +158,12 @@ function test()
       # LBFGS approximation of the augmented Lagrangian
       output = with_logger(NullLogger()) do
         modifier = m -> NLPModelsModifiers.LBFGSModel(m, mem = lbfgs_mem)
-        percival(nlp, modifier = modifier)
+        percival(nlp, modifier = modifier, rtol = 1e-5)
       end
 
-      @test isapprox(output.solution, sol, rtol=1e-6)
-      @test output.primal_feas < 1e-6
-      @test output.dual_feas < 1e-6
+      @test isapprox(output.solution, sol, rtol=1e-4)
+      @test output.primal_feas < 1e-4
+      @test output.dual_feas < 1e-4
       @test output.status == :first_order
     end
   end
