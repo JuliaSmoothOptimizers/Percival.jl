@@ -16,7 +16,7 @@ end
 
 function percival(::Val{:tron}, nlp :: AbstractNLPModel;
                   max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int = 100000,
-                  atol :: Real = 1e-8, rtol :: Real = 1e-8, modifier = identity,
+                  atol :: Real = 1e-8, rtol :: Real = 1e-8, subproblem_modifier = identity,
                   subsolver_logger :: AbstractLogger=NullLogger(), max_cgiter ::Int = nlp.meta.nvar
                  )
   if !(unconstrained(nlp) || bound_constrained(nlp))
