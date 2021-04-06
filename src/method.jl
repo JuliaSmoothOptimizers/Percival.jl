@@ -112,7 +112,7 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
   while !(solved || infeasible || tired)
     # solve subproblem
     S = with_logger(subsolver_logger) do
-      tron(modifier(al_nlp), x=copy(al_nlp.x), cgtol=ω, rtol=ω, atol=ω, max_time=max_time-el_time, max_eval=min(tron_max_eval, rem_eval), max_cgiter=max_cgiter)
+      tron(subproblem_modifier(al_nlp), x=copy(al_nlp.x), cgtol=ω, rtol=ω, atol=ω, max_time=max_time-el_time, max_eval=min(subsolver_max_eval, rem_eval), max_cgiter=max_cgiter)
     end
     inner_status = S.status
 
