@@ -23,7 +23,7 @@ function percival(::Val{:tron}, nlp :: AbstractNLPModel;
     error("percival(::Val{:tron}, nlp) should only be called for unconstrained or bound-constrained problems. Use percival(nlp)")
   end
   @warn "Problem does not have general constraints; calling tron"
-  return tron(modifier(nlp), subsolver_logger=subsolver_logger, atol=atol, rtol=rtol, max_eval=max_eval, max_time=max_time, max_cgiter = max_cgiter)
+  return tron(subproblem_modifier(nlp), subsolver_logger=subsolver_logger, atol=atol, rtol=rtol, max_eval=max_eval, max_time=max_time, max_cgiter = max_cgiter)
 end
 
 function percival(::Val{:ineq}, nlp :: AbstractNLPModel; kwargs...)
