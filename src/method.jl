@@ -54,7 +54,7 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
             max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=100000,
             atol :: Real = 1e-8, rtol :: Real = 1e-8, ctol :: Real = 1e-8,
             subsolver_logger :: AbstractLogger=NullLogger(), inity = nothing,
-            modifier = identity, max_cgiter = nlp.meta.nvar, tron_max_eval = max_eval,
+            subproblem_modifier = identity, max_cgiter = nlp.meta.nvar, subsolver_max_eval = max_eval,
            )
   if nlp.meta.ncon == 0 || !equality_constrained(nlp)
     error("percival(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use percival(nlp)")
