@@ -17,13 +17,18 @@ end
 function percival(::Val{:tron}, nlp :: AbstractNLPModel;
                   max_iter :: Int = 2000, max_time :: Real = 30.0, max_eval :: Int = 200000,
                   atol :: Real = 1e-8, rtol :: Real = 1e-8, subproblem_modifier = identity,
-                  subsolver_logger :: AbstractLogger = NullLogger(), max_cgiter ::Int = nlp.meta.nvar
-                 )
+                  subsolver_logger :: AbstractLogger = NullLogger(),
+                  subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
+                  )
   if !(unconstrained(nlp) || bound_constrained(nlp))
     error("percival(::Val{:tron}, nlp) should only be called for unconstrained or bound-constrained problems. Use percival(nlp)")
   end
   @warn "Problem does not have general constraints; calling tron"
-  return tron(subproblem_modifier(nlp), subsolver_logger=subsolver_logger, atol=atol, rtol=rtol, max_eval=max_eval, max_time=max_time, max_cgiter = max_cgiter)
+  return tron(
+    subproblem_modifier(nlp); subsolver_logger = subsolver_logger,
+    atol = atol, rtol = rtol, max_eval = max_eval, max_time = max_time,
+    subsolver_kwargs...,
+  )
 end
 
 function percival(::Val{:ineq}, nlp :: AbstractNLPModel; kwargs...)
