@@ -54,7 +54,8 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
             max_iter :: Int = 1000, max_time :: Real = 30.0, max_eval :: Int=100000,
             atol :: Real = 1e-8, rtol :: Real = 1e-8, ctol :: Real = 1e-8,
             subsolver_logger :: AbstractLogger=NullLogger(), inity = nothing,
-            subproblem_modifier = identity, max_cgiter = nlp.meta.nvar, subsolver_max_eval = max_eval,
+            subproblem_modifier = identity, subsolver_max_eval = max_eval,
+            subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
            )
   if nlp.meta.ncon == 0 || !equality_constrained(nlp)
     error("percival(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use percival(nlp)")
@@ -112,7 +113,12 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
   while !(solved || infeasible || tired)
     # solve subproblem
     S = with_logger(subsolver_logger) do
-      tron(subproblem_modifier(al_nlp), x=copy(al_nlp.x), cgtol=ω, rtol=ω, atol=ω, max_time=max_time-el_time, max_eval=min(subsolver_max_eval, rem_eval), max_cgiter=max_cgiter)
+      tron(
+        subproblem_modifier(al_nlp); x = copy(al_nlp.x), cgtol = ω, rtol = ω,
+        atol = ω, max_time = max_time - el_time,
+        max_eval = min(subsolver_max_eval, rem_eval),
+        subsolver_kwargs...,
+      )
     end
     inner_status = S.status
 
