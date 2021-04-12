@@ -14,19 +14,29 @@ function percival(nlp :: AbstractNLPModel; kwargs...)
   end
 end
 
-function percival(::Val{:tron}, nlp :: AbstractNLPModel;
-                  max_iter :: Int = 2000, max_time :: Real = 30.0, max_eval :: Int = 200000,
-                  atol :: Real = 1e-8, rtol :: Real = 1e-8, subproblem_modifier = identity,
-                  subsolver_logger :: AbstractLogger = NullLogger(),
-                  subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
-                  )
+function percival(
+  ::Val{:tron},
+  nlp :: AbstractNLPModel;
+  max_iter :: Int = 2000,
+  max_time :: Real = 30.0,
+  max_eval :: Int = 200000,
+  atol :: Real = 1e-8,
+  rtol :: Real = 1e-8,
+  subproblem_modifier = identity,
+  subsolver_logger :: AbstractLogger = NullLogger(),
+  subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
+)
   if !(unconstrained(nlp) || bound_constrained(nlp))
     error("percival(::Val{:tron}, nlp) should only be called for unconstrained or bound-constrained problems. Use percival(nlp)")
   end
   @warn "Problem does not have general constraints; calling tron"
   return tron(
-    subproblem_modifier(nlp); subsolver_logger = subsolver_logger,
-    atol = atol, rtol = rtol, max_eval = max_eval, max_time = max_time,
+    subproblem_modifier(nlp);
+    subsolver_logger = subsolver_logger,
+    atol = atol,
+    rtol = rtol,
+    max_eval = max_eval,
+    max_time = max_time,
     subsolver_kwargs...,
   )
 end
@@ -56,13 +66,22 @@ Implementation of an augmented Lagrangian method. The following keyword paramete
 - inity: Initial values of the Lagrangian multipliers
 - subsolver_kwargs: subsolver keyword arguments as a dictionary
 """
-function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.meta.x0)(10.0),
-            max_iter :: Int = 2000, max_time :: Real = 30.0, max_eval :: Int=200000,
-            atol :: Real = 1e-8, rtol :: Real = 1e-8, ctol :: Real = 1e-8,
-            subsolver_logger :: AbstractLogger=NullLogger(), inity = nothing,
-            subproblem_modifier = identity, subsolver_max_eval = max_eval,
-            subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
-           )
+function percival(
+  ::Val{:equ},
+  nlp :: AbstractNLPModel;
+  μ :: Real = eltype(nlp.meta.x0)(10.0),
+  max_iter :: Int = 2000,
+  max_time :: Real = 30.0,
+  max_eval :: Int=200000,
+  atol :: Real = 1e-8,
+  rtol :: Real = 1e-8,
+  ctol :: Real = 1e-8,
+  subsolver_logger :: AbstractLogger=NullLogger(),
+  inity = nothing,
+  subproblem_modifier = identity,
+  subsolver_max_eval = max_eval,
+  subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
+)
   if nlp.meta.ncon == 0 || !equality_constrained(nlp)
     error("percival(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use percival(nlp)")
   end
@@ -120,8 +139,12 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
     # solve subproblem
     S = with_logger(subsolver_logger) do
       tron(
-        subproblem_modifier(al_nlp); x = copy(al_nlp.x), cgtol = ω, rtol = ω,
-        atol = ω, max_time = max_time - el_time,
+        subproblem_modifier(al_nlp);
+        x = copy(al_nlp.x),
+        cgtol = ω,
+        rtol = ω,
+        atol = ω,
+        max_time = max_time - el_time,
         max_eval = min(subsolver_max_eval, rem_eval),
         subsolver_kwargs...,
       )
@@ -174,7 +197,15 @@ function percival(::Val{:equ}, nlp :: AbstractNLPModel; μ :: Real = eltype(nlp.
     end
   end
 
-  return GenericExecutionStats(status, nlp, solution = al_nlp.x,
-                               objective = fx, dual_feas = normgp, primal_feas = normcx,
-                               multipliers = y, iter = iter, elapsed_time = el_time)
+  return GenericExecutionStats(
+    status,
+    nlp,
+    solution = al_nlp.x,
+    objective = fx,
+    dual_feas = normgp,
+    primal_feas = normcx,
+    multipliers = y,
+    iter = iter,
+    elapsed_time = el_time
+  )
 end
