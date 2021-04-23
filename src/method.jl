@@ -4,7 +4,7 @@ using Logging, SolverCore, SolverTools, NLPModels
 
 using JSOSolvers, Krylov
 
-function percival(nlp :: AbstractNLPModel; kwargs...)
+function percival(nlp::AbstractNLPModel; kwargs...)
   if unconstrained(nlp) || bound_constrained(nlp)
     return percival(Val(:tron), nlp; kwargs...)
   elseif equality_constrained(nlp)
@@ -16,18 +16,20 @@ end
 
 function percival(
   ::Val{:tron},
-  nlp :: AbstractNLPModel;
-  max_iter :: Int = 2000,
-  max_time :: Real = 30.0,
-  max_eval :: Int = 200000,
-  atol :: Real = 1e-8,
-  rtol :: Real = 1e-8,
+  nlp::AbstractNLPModel;
+  max_iter::Int = 2000,
+  max_time::Real = 30.0,
+  max_eval::Int = 200000,
+  atol::Real = 1e-8,
+  rtol::Real = 1e-8,
   subproblem_modifier = identity,
-  subsolver_logger :: AbstractLogger = NullLogger(),
+  subsolver_logger::AbstractLogger = NullLogger(),
   subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
 )
   if !(unconstrained(nlp) || bound_constrained(nlp))
-    error("percival(::Val{:tron}, nlp) should only be called for unconstrained or bound-constrained problems. Use percival(nlp)")
+    error(
+      "percival(::Val{:tron}, nlp) should only be called for unconstrained or bound-constrained problems. Use percival(nlp)",
+    )
   end
   @warn "Problem does not have general constraints; calling tron"
   return tron(
@@ -41,13 +43,15 @@ function percival(
   )
 end
 
-function percival(::Val{:ineq}, nlp :: AbstractNLPModel; kwargs...)
+function percival(::Val{:ineq}, nlp::AbstractNLPModel; kwargs...)
   if nlp.meta.ncon == 0 || equality_constrained(nlp)
-    error("percival(::Val{:ineq}, nlp) should only be called for problems with inequalities. Use percival(nlp)")
+    error(
+      "percival(::Val{:ineq}, nlp) should only be called for problems with inequalities. Use percival(nlp)",
+    )
   end
   snlp = SlackModel(nlp)
   output = percival(Val(:equ), snlp; kwargs...)
-  output.solution = output.solution[1:nlp.meta.nvar]
+  output.solution = output.solution[1:(nlp.meta.nvar)]
   return output
 end
 
@@ -68,22 +72,24 @@ Implementation of an augmented Lagrangian method. The following keyword paramete
 """
 function percival(
   ::Val{:equ},
-  nlp :: AbstractNLPModel;
-  μ :: Real = eltype(nlp.meta.x0)(10.0),
-  max_iter :: Int = 2000,
-  max_time :: Real = 30.0,
-  max_eval :: Int=200000,
-  atol :: Real = 1e-8,
-  rtol :: Real = 1e-8,
-  ctol :: Real = 1e-8,
-  subsolver_logger :: AbstractLogger=NullLogger(),
+  nlp::AbstractNLPModel;
+  μ::Real = eltype(nlp.meta.x0)(10.0),
+  max_iter::Int = 2000,
+  max_time::Real = 30.0,
+  max_eval::Int = 200000,
+  atol::Real = 1e-8,
+  rtol::Real = 1e-8,
+  ctol::Real = 1e-8,
+  subsolver_logger::AbstractLogger = NullLogger(),
   inity = nothing,
   subproblem_modifier = identity,
   subsolver_max_eval = max_eval,
   subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
 )
   if nlp.meta.ncon == 0 || !equality_constrained(nlp)
-    error("percival(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use percival(nlp)")
+    error(
+      "percival(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use percival(nlp)",
+    )
   end
 
   T = eltype(nlp.meta.x0)
@@ -100,7 +106,6 @@ function percival(
   Jx = jac_op(nlp, x)
   fx, gx = objgrad(nlp, x)
 
-
   # Lagrange multiplier
   y = inity === nothing ? with_logger(subsolver_logger) do
     cgls(Jx', gx)[1]
@@ -113,7 +118,7 @@ function percival(
   al_nlp = AugLagModel(nlp, y, T(μ), x, cons(nlp, x) - nlp.meta.lcon)
 
   # stationarity measure
-  gL =  grad(nlp, x) - jtprod(nlp, x, y)
+  gL = grad(nlp, x) - jtprod(nlp, x, y)
   project_step!(gp, x, -gL, lvar, uvar) # Proj(x - gL) - x
   normgp = norm(gp)
   normcx = norm(al_nlp.cx)
@@ -127,8 +132,10 @@ function percival(
   el_time = 0.0
   rem_eval = max_eval
 
-  @info log_header([:iter, :fx, :normgp, :normcx, :μ, :normy, :sumc, :inner_status, :iter_type],
-                   [Int, Float64, Float64, Float64, Float64, Float64, Int, Symbol, Symbol])
+  @info log_header(
+    [:iter, :fx, :normgp, :normcx, :μ, :normy, :sumc, :inner_status, :iter_type],
+    [Int, Float64, Float64, Float64, Float64, Float64, Int, Symbol, Symbol],
+  )
   @info log_row(Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), counter_cost(nlp)])
 
   solved = normgp ≤ ϵd && normcx ≤ ϵp
@@ -178,7 +185,9 @@ function percival(
     infeasible = al_nlp.μ > 1e16 && norm(jtprod(nlp, al_nlp.x, al_nlp.cx)) < √ϵp * normcx
     tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval || al_nlp.μ > 1e16
 
-    @info log_row(Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), counter_cost(nlp), inner_status, iter_type])
+    @info log_row(
+      Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), counter_cost(nlp), inner_status, iter_type],
+    )
   end
 
   if solved
@@ -206,6 +215,6 @@ function percival(
     primal_feas = normcx,
     multipliers = y,
     iter = iter,
-    elapsed_time = el_time
+    elapsed_time = el_time,
   )
 end
