@@ -27,29 +27,47 @@ In addition to keeping `meta` and `counters` as any NLPModel, an AugLagModel als
 
 Use the functions `update_cx!`, `update_y!` and `update_μ!` to update these values.
 """
-mutable struct AugLagModel{M <: AbstractNLPModel, T <: AbstractFloat, V <: AbstractVector} <: AbstractNLPModel
-  meta :: NLPModelMeta
-  counters :: Counters
-  model :: M
-  y     :: V
-  μ     :: T
-  x     :: V # save last iteration of subsolver
-  cx    :: V # save last constraint value of subsolver
-  μc_y  :: V # y - μ * cx
-  store_Jv   :: Vector{T}
-  store_JtJv :: Vector{T}
+mutable struct AugLagModel{M <: AbstractNLPModel, T <: AbstractFloat, V <: AbstractVector} <:
+               AbstractNLPModel
+  meta::NLPModelMeta
+  counters::Counters
+  model::M
+  y::V
+  μ::T
+  x::V # save last iteration of subsolver
+  cx::V # save last constraint value of subsolver
+  μc_y::V # y - μ * cx
+  store_Jv::Vector{T}
+  store_JtJv::Vector{T}
 end
 
-function AugLagModel(model :: AbstractNLPModel, y :: AbstractVector, μ :: AbstractFloat, x :: AbstractVector, cx :: AbstractVector)
+function AugLagModel(
+  model::AbstractNLPModel,
+  y::AbstractVector,
+  μ::AbstractFloat,
+  x::AbstractVector,
+  cx::AbstractVector,
+)
   nvar, ncon = model.meta.nvar, model.meta.ncon
   @lencheck ncon y cx
   @lencheck nvar x
   μ ≥ 0 || error("Penalty parameter μ should be ≥ 0")
 
-  meta = NLPModelMeta(nvar, x0=model.meta.x0, lvar=model.meta.lvar, uvar=model.meta.uvar)
+  meta = NLPModelMeta(nvar, x0 = model.meta.x0, lvar = model.meta.lvar, uvar = model.meta.uvar)
   T = eltype(x)
 
-  return AugLagModel(meta, Counters(), model, y, μ, x, cx, y - μ * cx, zeros(T, ncon), zeros(T, nvar))
+  return AugLagModel(
+    meta,
+    Counters(),
+    model,
+    y,
+    μ,
+    x,
+    cx,
+    y - μ * cx,
+    zeros(T, ncon),
+    zeros(T, nvar),
+  )
 end
 
 """
@@ -58,7 +76,7 @@ end
 Given an `AugLagModel`, if `x != nlp.x`, then updates the internal value `nlp.cx` calling `cons`
 on `nlp.model`. Also updates `nlp.μc_y`.
 """
-function update_cx!(nlp :: AugLagModel, x :: AbstractVector)
+function update_cx!(nlp::AugLagModel, x::AbstractVector)
   @lencheck nlp.meta.nvar x
   if x != nlp.x
     cons!(nlp.model, x, nlp.cx)
@@ -73,7 +91,7 @@ end
 
 Given an `AugLagModel`, update `nlp.y = -nlp.μc_y` and updates `nlp.μc_y` accordingly.
 """
-function update_y!(nlp :: AugLagModel)
+function update_y!(nlp::AugLagModel)
   nlp.y .= -nlp.μc_y
   nlp.μc_y .= nlp.μ .* nlp.cx .- nlp.y
 end
@@ -83,19 +101,19 @@ end
 
 Given an `AugLagModel`, updates `nlp.μ = μ` and `nlp.μc_y` accordingly.
 """
-function update_μ!(nlp :: AugLagModel, μ :: AbstractFloat)
+function update_μ!(nlp::AugLagModel, μ::AbstractFloat)
   nlp.μ = μ
   nlp.μc_y .= nlp.μ .* nlp.cx .- nlp.y
 end
 
-function NLPModels.obj(nlp :: AugLagModel, x :: AbstractVector)
+function NLPModels.obj(nlp::AugLagModel, x::AbstractVector)
   @lencheck nlp.meta.nvar x
   increment!(nlp, :neval_obj)
   update_cx!(nlp, x)
   return obj(nlp.model, x) - dot(nlp.y, nlp.cx) + (nlp.μ / 2) * dot(nlp.cx, nlp.cx)
 end
 
-function NLPModels.grad!(nlp :: AugLagModel, x :: AbstractVector, g :: AbstractVector)
+function NLPModels.grad!(nlp::AugLagModel, x::AbstractVector, g::AbstractVector)
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.nvar g
   increment!(nlp, :neval_grad)
@@ -105,7 +123,7 @@ function NLPModels.grad!(nlp :: AugLagModel, x :: AbstractVector, g :: AbstractV
   return g
 end
 
-function NLPModels.objgrad!(nlp :: AugLagModel, x :: AbstractVector, g :: AbstractVector)
+function NLPModels.objgrad!(nlp::AugLagModel, x::AbstractVector, g::AbstractVector)
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.nvar g
   increment!(nlp, :neval_obj)
@@ -117,7 +135,13 @@ function NLPModels.objgrad!(nlp :: AugLagModel, x :: AbstractVector, g :: Abstra
   return f, g
 end
 
-function NLPModels.hprod!(nlp :: AugLagModel, x :: AbstractVector, v :: AbstractVector, Hv :: AbstractVector; obj_weight :: Real = one(eltype(x)))
+function NLPModels.hprod!(
+  nlp::AugLagModel,
+  x::AbstractVector,
+  v::AbstractVector,
+  Hv::AbstractVector;
+  obj_weight::Real = one(eltype(x)),
+)
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.nvar v
   @lencheck nlp.meta.nvar Hv
