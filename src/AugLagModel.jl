@@ -28,8 +28,8 @@ In addition to keeping `meta` and `counters` as any NLPModel, an AugLagModel als
 Use the functions `update_cx!`, `update_y!` and `update_μ!` to update these values.
 """
 mutable struct AugLagModel{M <: AbstractNLPModel, T <: AbstractFloat, V <: AbstractVector} <:
-               AbstractNLPModel
-  meta::NLPModelMeta
+               AbstractNLPModel{T, V}
+  meta::NLPModelMeta{T, V}
   counters::Counters
   model::M
   y::V
@@ -42,19 +42,18 @@ mutable struct AugLagModel{M <: AbstractNLPModel, T <: AbstractFloat, V <: Abstr
 end
 
 function AugLagModel(
-  model::AbstractNLPModel,
-  y::AbstractVector,
-  μ::AbstractFloat,
-  x::AbstractVector,
-  cx::AbstractVector,
-)
+  model::AbstractNLPModel{T, V},
+  y::V,
+  μ::T,
+  x::V,
+  cx::V,
+) where {T, V}
   nvar, ncon = model.meta.nvar, model.meta.ncon
   @lencheck ncon y cx
   @lencheck nvar x
   μ ≥ 0 || error("Penalty parameter μ should be ≥ 0")
 
   meta = NLPModelMeta(nvar, x0 = model.meta.x0, lvar = model.meta.lvar, uvar = model.meta.uvar)
-  T = eltype(x)
 
   return AugLagModel(
     meta,
