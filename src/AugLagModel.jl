@@ -41,13 +41,7 @@ mutable struct AugLagModel{M <: AbstractNLPModel, T <: AbstractFloat, V <: Abstr
   store_JtJv::Vector{T}
 end
 
-function AugLagModel(
-  model::AbstractNLPModel{T, V},
-  y::V,
-  μ::T,
-  x::V,
-  cx::V,
-) where {T, V}
+function AugLagModel(model::AbstractNLPModel{T, V}, y::V, μ::T, x::V, cx::V) where {T, V}
   nvar, ncon = model.meta.nvar, model.meta.ncon
   @lencheck ncon y cx
   @lencheck nvar x
