@@ -86,6 +86,9 @@ function percival(
   subsolver_max_eval = max_eval,
   subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
 )
+  if !(nlp.meta.minimize)
+    error("Percival only works for minimization problem")
+  end
   if nlp.meta.ncon == 0 || !equality_constrained(nlp)
     error(
       "percival(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use percival(nlp)",
