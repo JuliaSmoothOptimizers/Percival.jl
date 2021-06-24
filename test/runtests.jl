@@ -5,7 +5,14 @@ using ADNLPModels,
 
 using NLPModels
 
+mutable struct DummyModel{T, S} <: AbstractNLPModel{T, S}
+  meta::NLPModelMeta{T, S}
+end
+
 function test()
+  nlp = DummyModel(NLPModelMeta(1, minimize = false))
+  @test_throws ErrorException("Percival only works for minimization problem") percival(Val(:equ), nlp)
+
   lbfgs_mem = 4
   @testset "Unconstrained tests" begin
     unconstrained_nlp(percival)
