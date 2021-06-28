@@ -11,7 +11,10 @@ end
 
 function test()
   nlp = DummyModel(NLPModelMeta(1, minimize = false))
-  @test_throws ErrorException("Percival only works for minimization problem") percival(Val(:equ), nlp)
+  @test_throws ErrorException("Percival only works for minimization problem") percival(
+    Val(:equ),
+    nlp,
+  )
 
   lbfgs_mem = 4
   @testset "Unconstrained tests" begin
