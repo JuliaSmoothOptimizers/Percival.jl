@@ -3,5 +3,5 @@ ADNLPModels = "54578032-b7ea-4c30-94aa-7cbd1cce6c9a"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 
 [compat]
-ADNLPModels = "0.2"
+ADNLPModels = "0.3"
 Documenter = "0.27"
