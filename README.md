@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/JuliaSmoothOptimizers/Percival.jl/workflows/CI/badge.svg?branch=main)](https://github.com/JuliaSmoothOptimizers/Percival.jl/actions)
 [![codecov.io](https://codecov.io/github/JuliaSmoothOptimizers/Percival.jl/coverage.svg?branch=main)](https://codecov.io/github/JuliaSmoothOptimizers/Percival.jl?branch=main)
-[![docs-latest](https://img.shields.io/badge/docs-latest-3f51b5.svg)](https://JuliaSmoothOptimizers.github.io/Percival.jl/latest)
+[![docs-stable](https://img.shields.io/badge/docs-stable-3f51b5.svg)](https://JuliaSmoothOptimizers.github.io/Percival.jl/stable)
 [![docs-dev](https://img.shields.io/badge/docs-dev-3f51b5.svg)](https://JuliaSmoothOptimizers.github.io/Percival.jl/dev)
 [![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.3969045-blue.svg?style=flat)](https://doi.org/10.5281/zenodo.3969045)
 
