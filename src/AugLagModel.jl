@@ -80,6 +80,25 @@ function update_cx!(nlp::AugLagModel, x::AbstractVector)
 end
 
 """
+    update_fxcx!(nlp, x)
+
+Given an `AugLagModel`, if `x != nlp.x`, then updates the internal value `nlp.cx` calling `objcons`
+on `nlp.model`. Also updates `nlp.μc_y`. Returns fx only.
+"""
+function update_fxcx!(nlp::AugLagModel, x::AbstractVector)
+  @lencheck nlp.meta.nvar x
+  if x != nlp.x
+    fx, _ = objcons!(nlp.model, x, nlp.cx)
+    nlp.cx .-= nlp.model.meta.lcon
+    nlp.x .= x
+    nlp.μc_y .= nlp.μ .* nlp.cx .- nlp.y
+  else
+    fx = obj(nlp.model, x)
+  end
+  return fx
+end
+
+"""
     update_y!(nlp)
 
 Given an `AugLagModel`, update `nlp.y = -nlp.μc_y` and updates `nlp.μc_y` accordingly.
@@ -102,8 +121,8 @@ end
 function NLPModels.obj(nlp::AugLagModel, x::AbstractVector)
   @lencheck nlp.meta.nvar x
   increment!(nlp, :neval_obj)
-  update_cx!(nlp, x)
-  return obj(nlp.model, x) - dot(nlp.y, nlp.cx) + (nlp.μ / 2) * dot(nlp.cx, nlp.cx)
+  fx = update_fxcx!(nlp, x)
+  return fx - dot(nlp.y, nlp.cx) + (nlp.μ / 2) * dot(nlp.cx, nlp.cx)
 end
 
 function NLPModels.grad!(nlp::AugLagModel, x::AbstractVector, g::AbstractVector)
@@ -121,8 +140,8 @@ function NLPModels.objgrad!(nlp::AugLagModel, x::AbstractVector, g::AbstractVect
   @lencheck nlp.meta.nvar g
   increment!(nlp, :neval_obj)
   increment!(nlp, :neval_grad)
-  update_cx!(nlp, x)
-  f = obj(nlp.model, x) - dot(nlp.y, nlp.cx) + (nlp.μ / 2) * dot(nlp.cx, nlp.cx)
+  fx = update_fxcx!(nlp, x)
+  f = fx - dot(nlp.y, nlp.cx) + (nlp.μ / 2) * dot(nlp.cx, nlp.cx)
   grad!(nlp.model, x, g)
   g .+= jtprod(nlp.model, x, nlp.μc_y)
   return f, g
