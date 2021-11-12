@@ -38,7 +38,7 @@ mutable struct AugLagModel{M <: AbstractNLPModel, T <: AbstractFloat, V <: Abstr
   cx::V # save last constraint value of subsolver
   μc_y::V # y - μ * cx
   store_Jv::Vector{T}
-  store_JtJv::Vector{T}
+  store_Jtv::Vector{T}
 end
 
 function AugLagModel(model::AbstractNLPModel{T, V}, y::V, μ::T, x::V, cx::V) where {T, V}
@@ -131,7 +131,7 @@ function NLPModels.grad!(nlp::AugLagModel, x::AbstractVector, g::AbstractVector)
   increment!(nlp, :neval_grad)
   update_cx!(nlp, x)
   grad!(nlp.model, x, g)
-  g .+= jtprod(nlp.model, x, nlp.μc_y)
+  g .+= jtprod!(nlp.model, x, nlp.μc_y, nlp.store_Jtv)
   return g
 end
 
@@ -143,7 +143,7 @@ function NLPModels.objgrad!(nlp::AugLagModel, x::AbstractVector, g::AbstractVect
   fx = update_fxcx!(nlp, x)
   f = fx - dot(nlp.y, nlp.cx) + (nlp.μ / 2) * dot(nlp.cx, nlp.cx)
   grad!(nlp.model, x, g)
-  g .+= jtprod(nlp.model, x, nlp.μc_y)
+  g .+= jtprod!(nlp.model, x, nlp.μc_y, nlp.store_Jtv)
   return f, g
 end
 
@@ -160,8 +160,8 @@ function NLPModels.hprod!(
   increment!(nlp, :neval_hprod)
   update_cx!(nlp, x)
   jprod!(nlp.model, x, v, nlp.store_Jv)
-  jtprod!(nlp.model, x, nlp.store_Jv, nlp.store_JtJv)
+  jtprod!(nlp.model, x, nlp.store_Jv, nlp.store_Jtv)
   hprod!(nlp.model, x, nlp.μc_y, v, Hv, obj_weight = obj_weight)
-  Hv .+= nlp.μ * nlp.store_JtJv
+  Hv .+= nlp.μ * nlp.store_Jtv
   return Hv
 end
