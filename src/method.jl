@@ -118,7 +118,7 @@ function percival(
   ω = 1.0
 
   # create initial subproblem
-  al_nlp = AugLagModel(nlp, y, T(μ), x, cons(nlp, x) - nlp.meta.lcon)
+  al_nlp = AugLagModel(nlp, y, T(μ), x, fx, cons(nlp, x) - nlp.meta.lcon)
 
   # stationarity measure
   gL = grad(nlp, x) - jtprod(nlp, x, y)

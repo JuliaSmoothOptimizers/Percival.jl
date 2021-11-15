@@ -4,7 +4,7 @@ using NLPModels, NLPModelsModifiers, LinearAlgebra, LinearOperators
 using NLPModels: increment!, @lencheck # @lencheck is not exported in 0.12.0
 
 @doc raw"""
-    AugLagModel(model, y, μ, x, cx)
+    AugLagModel(model, y, μ, x, fx, cx)
 
 Given a model
 ```math
@@ -21,6 +21,7 @@ In addition to keeping `meta` and `counters` as any NLPModel, an AugLagModel als
 - `y`: The multipliers estimate,
 - `μ`: The penalty parameter,
 - `x`: Reference to the last point at which the function `c(x)` was computed,
+- `fx`: Reference to `f(x)`,
 - `cx`: Reference to `c(x)`,
 - `μc_y`: storage for y - μ * cx,
 - `store_Jv` and `store_JtJv`: storage used in `hprod!`.
@@ -35,13 +36,14 @@ mutable struct AugLagModel{M <: AbstractNLPModel, T <: AbstractFloat, V <: Abstr
   y::V
   μ::T
   x::V # save last iteration of subsolver
+  fx::T # save last objective value of subsolver
   cx::V # save last constraint value of subsolver
   μc_y::V # y - μ * cx
   store_Jv::Vector{T}
   store_Jtv::Vector{T}
 end
 
-function AugLagModel(model::AbstractNLPModel{T, V}, y::V, μ::T, x::V, cx::V) where {T, V}
+function AugLagModel(model::AbstractNLPModel{T, V}, y::V, μ::T, x::V, fx::T, cx::V) where {T, V}
   nvar, ncon = model.meta.nvar, model.meta.ncon
   @lencheck ncon y cx
   @lencheck nvar x
@@ -56,6 +58,7 @@ function AugLagModel(model::AbstractNLPModel{T, V}, y::V, μ::T, x::V, cx::V) wh
     y,
     μ,
     x,
+    fx,
     cx,
     y - μ * cx,
     zeros(T, ncon),
@@ -67,15 +70,16 @@ end
     update_cx!(nlp, x)
 
 Given an `AugLagModel`, if `x != nlp.x`, then updates the internal value `nlp.cx` calling `cons`
-on `nlp.model`. Also updates `nlp.μc_y`.
+on `nlp.model`, and reset `nlp.fx` to a NaN. Also updates `nlp.μc_y`.
 """
-function update_cx!(nlp::AugLagModel, x::AbstractVector)
+function update_cx!(nlp::AugLagModel, x::AbstractVector{T}) where {T}
   @lencheck nlp.meta.nvar x
   if x != nlp.x
     cons!(nlp.model, x, nlp.cx)
     nlp.cx .-= nlp.model.meta.lcon
     nlp.x .= x
     nlp.μc_y .= nlp.μ .* nlp.cx .- nlp.y
+    nlp.fx = T(NaN)
   end
 end
 
@@ -88,14 +92,13 @@ on `nlp.model`. Also updates `nlp.μc_y`. Returns fx only.
 function update_fxcx!(nlp::AugLagModel, x::AbstractVector)
   @lencheck nlp.meta.nvar x
   if x != nlp.x
-    fx, _ = objcons!(nlp.model, x, nlp.cx)
+    nlp.fx, _ = objcons!(nlp.model, x, nlp.cx)
     nlp.cx .-= nlp.model.meta.lcon
     nlp.x .= x
     nlp.μc_y .= nlp.μ .* nlp.cx .- nlp.y
-  else
-    fx = obj(nlp.model, x)
+  elseif isnan(nlp.fx)
+    nlp.fx = obj(nlp.model, x)
   end
-  return fx
 end
 
 """
@@ -121,8 +124,8 @@ end
 function NLPModels.obj(nlp::AugLagModel, x::AbstractVector)
   @lencheck nlp.meta.nvar x
   increment!(nlp, :neval_obj)
-  fx = update_fxcx!(nlp, x)
-  return fx - dot(nlp.y, nlp.cx) + (nlp.μ / 2) * dot(nlp.cx, nlp.cx)
+  update_fxcx!(nlp, x)
+  return nlp.fx - dot(nlp.y, nlp.cx) + (nlp.μ / 2) * dot(nlp.cx, nlp.cx)
 end
 
 function NLPModels.grad!(nlp::AugLagModel, x::AbstractVector, g::AbstractVector)
@@ -140,8 +143,8 @@ function NLPModels.objgrad!(nlp::AugLagModel, x::AbstractVector, g::AbstractVect
   @lencheck nlp.meta.nvar g
   increment!(nlp, :neval_obj)
   increment!(nlp, :neval_grad)
-  fx = update_fxcx!(nlp, x)
-  f = fx - dot(nlp.y, nlp.cx) + (nlp.μ / 2) * dot(nlp.cx, nlp.cx)
+  update_fxcx!(nlp, x)
+  f = nlp.fx - dot(nlp.y, nlp.cx) + (nlp.μ / 2) * dot(nlp.cx, nlp.cx)
   grad!(nlp.model, x, g)
   g .+= jtprod!(nlp.model, x, nlp.μc_y, nlp.store_Jtv)
   return f, g
