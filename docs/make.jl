@@ -1,11 +1,7 @@
 ENV["GKSwstype"] = "100"
 using Documenter, Percival
 
-pages = [
-  "Introduction" => "index.md",
-  "Benchmark" => "benchmark.md",
-  "Reference" => "reference.md",
-]
+pages = ["Introduction" => "index.md", "Benchmark" => "benchmark.md", "Reference" => "reference.md"]
 
 makedocs(
   sitename = "Percival.jl",
