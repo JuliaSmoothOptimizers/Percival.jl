@@ -72,8 +72,8 @@ Implementation of an augmented Lagrangian method. The following keyword paramete
 """
 function percival(
   ::Val{:equ},
-  nlp::AbstractNLPModel;
-  μ::Real = eltype(nlp.meta.x0)(10.0),
+  nlp::AbstractNLPModel{T, V};
+  μ::Real = T(10.0),
   max_iter::Int = 2000,
   max_time::Real = 30.0,
   max_eval::Int = 200000,
@@ -85,7 +85,7 @@ function percival(
   subproblem_modifier = identity,
   subsolver_max_eval = max_eval,
   subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
-)
+) where {T, V}
   if !(nlp.meta.minimize)
     error("Percival only works for minimization problem")
   end
@@ -95,15 +95,10 @@ function percival(
     )
   end
 
-  T = eltype(nlp.meta.x0)
-
-  lvar = eltype(nlp.meta.lvar) == T ? nlp.meta.lvar : T.(nlp.meta.lvar)
-  uvar = eltype(nlp.meta.uvar) == T ? nlp.meta.uvar : T.(nlp.meta.uvar)
-
   counter_cost(nlp) = neval_obj(nlp) + 2 * neval_grad(nlp)
 
   x = copy(nlp.meta.x0)
-  x .= max.(lvar, min.(x, uvar))
+  x .= max.(nlp.meta.lvar, min.(x, nlp.meta.uvar))
 
   gp = zeros(T, nlp.meta.nvar)
   Jx = jac_op(nlp, x)
@@ -122,7 +117,7 @@ function percival(
 
   # stationarity measure
   gL = grad(nlp, x) - jtprod(nlp, x, y)
-  project_step!(gp, x, -gL, lvar, uvar) # Proj(x - gL) - x
+  project_step!(gp, x, -gL, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gL) - x
   normgp = norm(gp)
   normcx = norm(al_nlp.cx)
 
@@ -178,7 +173,7 @@ function percival(
 
     # stationarity measure
     gL = grad(nlp, al_nlp.x) - jtprod(nlp, al_nlp.x, al_nlp.y)
-    project_step!(gp, al_nlp.x, -gL, lvar, uvar) # Proj(x - gL) - x
+    project_step!(gp, al_nlp.x, -gL, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gL) - x
     normgp = norm(gp)
 
     iter += 1
