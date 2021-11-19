@@ -58,6 +58,11 @@ end
 """
     percival(nlp)
 
+---
+
+    solver = PercivalSolver(nlp)
+    solve!(solver, nlp)
+
 Implementation of an augmented Lagrangian method. The following keyword parameters can be passed:
 - μ: Starting value of the penalty parameter (default: 10.0)
 - atol: Absolute tolerance used in dual feasibility measure (default: 1e-8)
@@ -70,8 +75,36 @@ Implementation of an augmented Lagrangian method. The following keyword paramete
 - inity: Initial values of the Lagrangian multipliers
 - subsolver_kwargs: subsolver keyword arguments as a dictionary
 """
-function percival(
+mutable struct PercivalSolver{T, V}
+  x::V
+  gx::V
+  gL::V
+  gp::V
+  Jtv::V
+end
+
+function PercivalSolver(nlp::M) where {T, V, M <: AbstractNLPModel{T, V}}
+  nvar = nlp.meta.nvar
+  x = V(undef, nvar)
+  gx = V(undef, nvar)
+  gL = V(undef, nvar)
+  gp = V(undef, nvar)
+  Jtv = V(undef, nvar)
+  return PercivalSolver{T, V}(x, gx, gL, gp, Jtv)
+end
+
+@doc (@doc PercivalSolver) function percival(
   ::Val{:equ},
+  nlp::AbstractNLPModel;
+  kwargs...
+)
+  solver = PercivalSolver(nlp)
+  return solve!(Val(:equ), solver, nlp; kwargs...)
+end
+
+function solve!(
+  ::Val{:equ},
+  solver::PercivalSolver{T, V},
   nlp::AbstractNLPModel{T, V};
   μ::Real = T(10.0),
   max_iter::Int = 2000,
@@ -97,12 +130,14 @@ function percival(
 
   counter_cost(nlp) = neval_obj(nlp) + 2 * neval_grad(nlp)
 
-  x = copy(nlp.meta.x0)
-  x .= max.(nlp.meta.lvar, min.(x, nlp.meta.uvar))
+  x = solver.x
+  gx = solver.gx
+  x .= max.(nlp.meta.lvar, min.(nlp.meta.x0, nlp.meta.uvar))
 
-  gp = zeros(T, nlp.meta.nvar)
+  gp = solver.gp
+  gp .= zeros(T, nlp.meta.nvar)
   Jx = jac_op(nlp, x)
-  fx, gx = objgrad(nlp, x)
+  fx, gx = objgrad!(nlp, x, gx)
 
   # Lagrange multiplier
   y = inity === nothing ? with_logger(subsolver_logger) do
@@ -116,7 +151,9 @@ function percival(
   al_nlp = AugLagModel(nlp, y, T(μ), x, fx, cons(nlp, x) - nlp.meta.lcon)
 
   # stationarity measure
-  gL = grad(nlp, x) - jtprod(nlp, x, y)
+  jtprod!(nlp, x, y, solver.Jtv)
+  gL = solver.gL
+  gL .= gx .- solver.Jtv
   project_step!(gp, x, -gL, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gL) - x
   normgp = norm(gp)
   normcx = norm(al_nlp.cx)
@@ -172,7 +209,9 @@ function percival(
     end
 
     # stationarity measure
-    gL = grad(nlp, al_nlp.x) - jtprod(nlp, al_nlp.x, al_nlp.y)
+    grad!(nlp, al_nlp.x, gx)
+    jtprod!(nlp, al_nlp.x, al_nlp.y, solver.Jtv)
+    gL .= gx .- solver.Jtv
     project_step!(gp, al_nlp.x, -gL, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gL) - x
     normgp = norm(gp)
 
@@ -180,7 +219,8 @@ function percival(
     el_time = time() - start_time
     rem_eval = max_eval - neval_obj(nlp)
     solved = normgp ≤ ϵd && normcx ≤ ϵp
-    infeasible = al_nlp.μ > 1e16 && norm(jtprod(nlp, al_nlp.x, al_nlp.cx)) < √ϵp * normcx
+    jtprod!(nlp, al_nlp.x, al_nlp.cx, solver.Jtv)
+    infeasible = al_nlp.μ > 1e16 && norm(solver.Jtv) < √ϵp * normcx
     tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval || al_nlp.μ > 1e16
 
     @info log_row(
