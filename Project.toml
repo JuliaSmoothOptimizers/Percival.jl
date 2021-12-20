@@ -19,10 +19,10 @@ JSOSolvers = "0.7"
 Krylov = "0.4, 0.5, 0.6, 0.7"
 LinearOperators = "1, 2"
 NLPModels = "0.15, 0.16, 0.17, 0.18"
-NLPModelsModifiers = "0.2, 0.3, 0.4"
+NLPModelsModifiers = "0.2, 0.3, 0.4, 0.5"
 SolverCore = "0.2"
-SolverTest = "0.2"
-SolverTools = "0.6, 0.7"
+SolverTest = "0.2, 0.3"
+SolverTools = "0.6, 0.7, 0.8"
 julia = "^1.3"
 
 [extras]
