@@ -77,9 +77,9 @@ function percival(
   max_iter::Int = 2000,
   max_time::Real = 30.0,
   max_eval::Int = 200000,
-  atol::Real = 1e-8,
-  rtol::Real = 1e-8,
-  ctol::Real = 1e-8,
+  atol::Real = T(1e-8),
+  rtol::Real = T(1e-8),
+  ctol::Real = T(1e-8),
   subsolver_logger::AbstractLogger = NullLogger(),
   inity = nothing,
   subproblem_modifier = identity,
@@ -109,8 +109,8 @@ function percival(
     cgls(Jx', gx)[1]
   end : inity
   # tolerance
-  η = 0.5
-  ω = 1.0
+  η = T(0.5)
+  ω = T(1.0)
 
   # create initial subproblem
   al_nlp = AugLagModel(nlp, y, T(μ), x, fx, cons(nlp, x) - nlp.meta.lcon)
