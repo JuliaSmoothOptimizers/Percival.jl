@@ -1,7 +1,7 @@
 name = "Percival"
 uuid = "01435c0c-c90d-11e9-3788-63660f8fbccc"
 authors = ["Egmara Antunes <egmara.antunes@gmail.com>", "Abel Soares Siqueira <abel.s.siqueira@gmail.com"]
-version = "0.5.0"
+version = "0.5.1"
 
 [deps]
 JSOSolvers = "10dff2fc-5484-5881-a0e0-c90441020f8a"
