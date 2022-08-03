@@ -5,6 +5,7 @@ pages = ["Introduction" => "index.md", "Benchmark" => "benchmark.md", "Reference
 
 makedocs(
   sitename = "Percival.jl",
+  strict = true,
   format = Documenter.HTML(prettyurls = get(ENV, "CI", nothing) == "true"),
   modules = [Percival],
   pages = pages,
