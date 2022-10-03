@@ -75,7 +75,7 @@ Implementation of an augmented Lagrangian method. The following keyword paramete
 - inity: Initial values of the Lagrangian multipliers
 - subsolver_kwargs: subsolver keyword arguments as a dictionary
 """
-mutable struct PercivalSolver{T, V}
+mutable struct PercivalSolver{V}
   x::V
   gx::V
   gL::V
