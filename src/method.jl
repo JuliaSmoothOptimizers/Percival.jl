@@ -83,7 +83,7 @@ mutable struct PercivalSolver{T, V}
   Jtv::V
 end
 
-function PercivalSolver(nlp::M) where {T, V, M <: AbstractNLPModel{T, V}}
+function PercivalSolver(nlp::AbstractNLPModel{T, V}) where {T, V}
   nvar = nlp.meta.nvar
   x = V(undef, nvar)
   gx = V(undef, nvar)
@@ -135,7 +135,7 @@ function solve!(
   x .= max.(nlp.meta.lvar, min.(nlp.meta.x0, nlp.meta.uvar))
 
   gp = solver.gp
-  gp .= zeros(T, nlp.meta.nvar)
+  gp .= zero(T)
   Jx = jac_op(nlp, x)
   fx, gx = objgrad!(nlp, x, gx)
 
