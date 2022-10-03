@@ -57,7 +57,6 @@ end
 
 """
     percival(nlp)
-
     solver = PercivalSolver(nlp)
     solve!(solver, nlp)
 
@@ -169,9 +168,10 @@ function solve!(
 
   solved = normgp ≤ ϵd && normcx ≤ ϵp
   infeasible = false
+  penalty_too_large = false
   tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval
 
-  while !(solved || infeasible || tired)
+  while !(solved || infeasible || tired || penalty_too_large)
     # solve subproblem
     S = with_logger(subsolver_logger) do
       tron(
@@ -214,9 +214,9 @@ function solve!(
     rem_eval = max_eval - neval_obj(nlp)
     solved = normgp ≤ ϵd && normcx ≤ ϵp
     jtprod!(nlp, al_nlp.x, al_nlp.cx, solver.Jtv)
-    infeasible = al_nlp.μ > 1 / eps(T) && norm(solver.Jtv) < √ϵp * normcx
-    tired =
-      iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval || al_nlp.μ > 1 / eps(T)
+    penalty_too_large = al_nlp.μ > 1 / eps(T)
+    infeasible = penalty_too_large && norm(solver.Jtv) < √ϵp * normcx
+    tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval
 
     @info log_row(
       Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), counter_cost(nlp), inner_status, iter_type],
@@ -234,9 +234,9 @@ function solve!(
       status = :max_time
     elseif neval_obj(nlp) > max_eval
       status = :max_eval
-    elseif al_nlp.μ > 1e16
-      status = :stalled
     end
+  elseif penalty_too_large
+    status = :stalled
   end
 
   return GenericExecutionStats(
