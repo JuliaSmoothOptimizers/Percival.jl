@@ -90,7 +90,7 @@ function PercivalSolver(nlp::AbstractNLPModel{T, V}) where {T, V}
   gL = V(undef, nvar)
   gp = V(undef, nvar)
   Jtv = V(undef, nvar)
-  return PercivalSolver{T, V}(x, gx, gL, gp, Jtv)
+  return PercivalSolver{V}(x, gx, gL, gp, Jtv)
 end
 
 @doc (@doc PercivalSolver) function percival(
@@ -104,7 +104,7 @@ end
 
 function solve!(
   ::Val{:equ},
-  solver::PercivalSolver{T, V},
+  solver::PercivalSolver{V},
   nlp::AbstractNLPModel{T, V};
   μ::Real = T(10.0),
   max_iter::Int = 2000,
