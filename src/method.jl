@@ -58,8 +58,6 @@ end
 """
     percival(nlp)
 
----
-
     solver = PercivalSolver(nlp)
     solve!(solver, nlp)
 
@@ -93,13 +91,9 @@ function PercivalSolver(nlp::AbstractNLPModel{T, V}) where {T, V}
   return PercivalSolver{V}(x, gx, gL, gp, Jtv)
 end
 
-@doc (@doc PercivalSolver) function percival(
-  ::Val{:equ},
-  nlp::AbstractNLPModel;
-  kwargs...
-)
+@doc (@doc PercivalSolver) function percival(::Val{:equ}, nlp::AbstractNLPModel; kwargs...)
   solver = PercivalSolver(nlp)
-  return solve!(Val(:equ), solver, nlp; kwargs...)
+  solve!(Val(:equ), solver, nlp; kwargs...)
 end
 
 function solve!(
@@ -220,8 +214,9 @@ function solve!(
     rem_eval = max_eval - neval_obj(nlp)
     solved = normgp ≤ ϵd && normcx ≤ ϵp
     jtprod!(nlp, al_nlp.x, al_nlp.cx, solver.Jtv)
-    infeasible = al_nlp.μ > 1e16 && norm(solver.Jtv) < √ϵp * normcx
-    tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval || al_nlp.μ > 1e16
+    infeasible = al_nlp.μ > 1 / eps(T) && norm(solver.Jtv) < √ϵp * normcx
+    tired =
+      iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval || al_nlp.μ > 1 / eps(T)
 
     @info log_row(
       Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), counter_cost(nlp), inner_status, iter_type],
