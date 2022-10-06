@@ -239,15 +239,13 @@ function solve!(
     status = :stalled
   end
 
-  return GenericExecutionStats(
-    status,
-    nlp,
-    solution = al_nlp.x,
-    objective = fx,
-    dual_feas = normgp,
-    primal_feas = normcx,
-    multipliers = y,
-    iter = iter,
-    elapsed_time = el_time,
-  )
+  stats = GenericExecutionStats(nlp)
+  set_status!(stats, status)
+  set_solution!(stats, al_nlp.x)
+  set_objective!(stats, fx)
+  set_residuals!(stats, normcx, normgp)
+  set_iter!(stats, iter)
+  set_time!(stats, el_time)
+  set_constraint_multipliers!(stats, y)
+  stats
 end
