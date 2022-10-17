@@ -72,7 +72,7 @@ Implementation of an augmented Lagrangian method. The following keyword paramete
 - inity: Initial values of the Lagrangian multipliers
 - subsolver_kwargs: subsolver keyword arguments as a dictionary
 """
-mutable struct PercivalSolver{V}
+mutable struct PercivalSolver{V} <: AbstractOptimizationSolver
   x::V
   gx::V
   gL::V
@@ -91,14 +91,22 @@ function PercivalSolver(nlp::AbstractNLPModel{T, V}) where {T, V}
 end
 
 @doc (@doc PercivalSolver) function percival(::Val{:equ}, nlp::AbstractNLPModel; kwargs...)
+  if !(nlp.meta.minimize)
+    error("Percival only works for minimization problem")
+  end
+  if nlp.meta.ncon == 0 || !equality_constrained(nlp)
+    error(
+      "percival(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use percival(nlp)",
+    )
+  end
   solver = PercivalSolver(nlp)
-  solve!(Val(:equ), solver, nlp; kwargs...)
+  SolverCore.solve!(solver, nlp; kwargs...)
 end
 
-function solve!(
-  ::Val{:equ},
+function SolverCore.solve!(
   solver::PercivalSolver{V},
-  nlp::AbstractNLPModel{T, V};
+  nlp::AbstractNLPModel{T, V},
+  stats::GenericExecutionStats{T, V};
   μ::Real = T(10.0),
   max_iter::Int = 2000,
   max_time::Real = 30.0,
@@ -112,15 +120,6 @@ function solve!(
   subsolver_max_eval = max_eval,
   subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
 ) where {T, V}
-  if !(nlp.meta.minimize)
-    error("Percival only works for minimization problem")
-  end
-  if nlp.meta.ncon == 0 || !equality_constrained(nlp)
-    error(
-      "percival(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use percival(nlp)",
-    )
-  end
-
   counter_cost(nlp) = neval_obj(nlp) + 2 * neval_grad(nlp)
 
   x = solver.x
@@ -239,7 +238,6 @@ function solve!(
     status = :stalled
   end
 
-  stats = GenericExecutionStats(nlp)
   set_status!(stats, status)
   set_solution!(stats, al_nlp.x)
   set_objective!(stats, fx)
