@@ -3,7 +3,7 @@ using Percival
 using ADNLPModels,
   JSOSolvers, LinearAlgebra, Logging, SolverTest, SparseArrays, NLPModelsModifiers, Test
 
-using NLPModels
+using NLPModels, SolverCore
 
 mutable struct DummyModel{T, S} <: AbstractNLPModel{T, S}
   meta::NLPModelMeta{T, S}
