@@ -210,3 +210,5 @@ function test()
 end
 
 test()
+
+include("restart.jl")
