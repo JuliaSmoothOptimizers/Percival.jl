@@ -1,4 +1,4 @@
-export percival
+export percival, PercivalSolver
 
 using Logging, SolverCore, SolverTools, NLPModels
 
@@ -61,6 +61,7 @@ end
     solve!(solver, nlp)
 
 Implementation of an augmented Lagrangian method. The following keyword parameters can be passed:
+- x: the initial guess (default: nlp.meta.x0).
 - μ: Starting value of the penalty parameter (default: 10.0)
 - atol: Absolute tolerance used in dual feasibility measure (default: 1e-8)
 - rtol: Relative tolerance used in dual feasibility measure (default: 1e-8)
@@ -103,10 +104,16 @@ end
   SolverCore.solve!(solver, nlp; kwargs...)
 end
 
+function SolverCore.reset!(solver::PercivalSolver)
+  solver
+end
+SolverCore.reset!(solver::PercivalSolver, ::AbstractNLPModel) = reset!(solver)
+
 function SolverCore.solve!(
   solver::PercivalSolver{V},
   nlp::AbstractNLPModel{T, V},
   stats::GenericExecutionStats{T, V};
+  x::V = nlp.meta.x0,
   μ::Real = T(10.0),
   max_iter::Int = 2000,
   max_time::Real = 30.0,
@@ -122,9 +129,9 @@ function SolverCore.solve!(
 ) where {T, V}
   counter_cost(nlp) = neval_obj(nlp) + 2 * neval_grad(nlp)
 
-  x = solver.x
+  x = solver.x .= x
   gx = solver.gx
-  x .= max.(nlp.meta.lvar, min.(nlp.meta.x0, nlp.meta.uvar))
+  x .= max.(nlp.meta.lvar, min.(x, nlp.meta.uvar))
 
   gp = solver.gp
   gp .= zero(T)
