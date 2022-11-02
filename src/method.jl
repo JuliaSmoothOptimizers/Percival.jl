@@ -22,6 +22,7 @@ function percival(
   max_eval::Int = 200000,
   atol::Real = 1e-8,
   rtol::Real = 1e-8,
+  verbose::Integer = 0,
   subproblem_modifier = identity,
   subsolver_logger::AbstractLogger = NullLogger(),
   subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
@@ -39,6 +40,7 @@ function percival(
     rtol = rtol,
     max_eval = max_eval,
     max_time = max_time,
+    verbose = verbose,
     subsolver_kwargs...,
   )
 end
@@ -72,6 +74,7 @@ Implementation of an augmented Lagrangian method. The following keyword paramete
 - subsolver_logger: Logger passed to `tron` (default: NullLogger)
 - inity: Initial values of the Lagrangian multipliers
 - subsolver_kwargs: subsolver keyword arguments as a dictionary
+- `verbose::Integer = 0`: if > 0, display iteration details every `verbose` iteration.
 """
 mutable struct PercivalSolver{V} <: AbstractOptimizationSolver
   x::V
@@ -126,6 +129,7 @@ function SolverCore.solve!(
   subproblem_modifier = identity,
   subsolver_max_eval = max_eval,
   subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
+  verbose::Integer = 0,
 ) where {T, V}
   counter_cost(nlp) = neval_obj(nlp) + 2 * neval_grad(nlp)
 
@@ -166,11 +170,13 @@ function SolverCore.solve!(
   el_time = 0.0
   rem_eval = max_eval
 
-  @info log_header(
-    [:iter, :fx, :normgp, :normcx, :μ, :normy, :sumc, :inner_status, :iter_type],
-    [Int, Float64, Float64, Float64, Float64, Float64, Int, Symbol, Symbol],
-  )
-  @info log_row(Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), counter_cost(nlp)])
+  if verbose > 0
+    @info log_header(
+      [:iter, :fx, :normgp, :normcx, :μ, :normy, :sumc, :inner_status, :iter_type],
+      [Int, Float64, Float64, Float64, Float64, Float64, Int, Symbol, Symbol],
+    )
+    @info log_row(Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), counter_cost(nlp)])
+  end
 
   solved = normgp ≤ ϵd && normcx ≤ ϵp
   infeasible = false
@@ -224,7 +230,7 @@ function SolverCore.solve!(
     infeasible = penalty_too_large && norm(solver.Jtv) < √ϵp * normcx
     tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval
 
-    @info log_row(
+    verbose > 0 && mod(iter, verbose) == 0 && @info log_row(
       Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), counter_cost(nlp), inner_status, iter_type],
     )
   end
