@@ -59,22 +59,54 @@ end
 
 """
     percival(nlp)
+
+A matrix-free augmented Lagrangian for nonlinear optimization.
+
+For advanced usage, first define a `PercivalSolver` to preallocate the memory used in the algorithm, and then call `solve!`:
+
     solver = PercivalSolver(nlp)
     solve!(solver, nlp)
 
-Implementation of an augmented Lagrangian method. The following keyword parameters can be passed:
-- x: the initial guess (default: nlp.meta.x0).
-- μ: Starting value of the penalty parameter (default: 10.0)
-- atol: Absolute tolerance used in dual feasibility measure (default: 1e-8)
-- rtol: Relative tolerance used in dual feasibility measure (default: 1e-8)
-- ctol: (Absolute) tolerance used in primal feasibility measure (default: 1e-8)
-- max_iter: Maximum number of iterations (default: 1000)
-- max_time: Maximum elapsed time in seconds (default: 30.0)
-- max_eval: Maximum number of objective function evaluations (default: 100000)
-- subsolver_logger: Logger passed to `tron` (default: NullLogger)
-- inity: Initial values of the Lagrangian multipliers
-- subsolver_kwargs: subsolver keyword arguments as a dictionary
-- `verbose::Integer = 0`: if > 0, display iteration details every `verbose` iteration.
+# Arguments
+- `nlp::AbstractNLPModel{T, V}` is the model to solve, see `NLPModels.jl`.
+
+# Keyword arguments 
+- `x::V = nlp.meta.x0`: the initial guess.
+- `atol::T = T(1e-8)`: absolute tolerance.
+- `rtol::T = T(1e-8)`: relative tolerance: algorithm stops when ‖∇f(xᵏ)‖ ≤ atol + rtol * ‖∇f(x⁰)‖.
+- `ctol::T = T(1e-8)`: absolute tolerance on the feasibility ‖c(xᵏ)‖ ≤ ctol.
+- `max_eval::Int = 100000`: maximum number of evaluation of the objective function.
+- `max_time::Float64 = 30.0`: maximum time limit in seconds.
+- `max_iter::Int = 2000`: maximum number of iterations.
+- `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration.
+- `μ::Real = T(10.0)`: Starting value of the penalty parameter.
+- `subsolver_logger::AbstractLogger = NullLogger()`: logger passed to `tron`.
+- `inity = nothing`: initial values of the Lagrangian multipliers. If `nothing` the algorithm uses `Krylov.cgls` to compute an approximation.
+- `subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar)`: subsolver keyword arguments as a dictionary.
+
+# Output
+The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
+
+# Examples
+```jldoctest
+using Percival, ADNLPModels
+nlp = ADNLPModel(x -> sum(x.^2), ones(3), x -> [x[1]], zeros(1), zeros(1))
+stats = percival(nlp)
+
+# output
+
+"Execution stats: first-order stationary"
+```
+```jldoctest
+using Percival, ADNLPModels
+nlp = ADNLPModel(x -> sum(x.^2), ones(3), x -> [x[1]], zeros(1), zeros(1))
+solver = PercivalSolver(nlp)
+stats = SolverCore.solve!(solver, nlp)
+
+# output
+
+"Execution stats: first-order stationary"
+```
 """
 mutable struct PercivalSolver{V} <: AbstractOptimizationSolver
   x::V
