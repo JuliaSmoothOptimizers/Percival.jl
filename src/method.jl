@@ -1,8 +1,9 @@
-export percival, PercivalSolver
+export percival, PercivalSolver, solve!
 
 using Logging, SolverCore, SolverTools, NLPModels
 
 using JSOSolvers, Krylov
+import SolverCore.solve!
 
 function percival(nlp::AbstractNLPModel; kwargs...)
   if unconstrained(nlp) || bound_constrained(nlp)
@@ -101,7 +102,7 @@ stats = percival(nlp)
 using Percival, ADNLPModels
 nlp = ADNLPModel(x -> sum(x.^2), ones(3), x -> [x[1]], zeros(1), zeros(1))
 solver = PercivalSolver(nlp)
-stats = SolverCore.solve!(solver, nlp)
+stats = solve!(solver, nlp)
 
 # output
 
