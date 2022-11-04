@@ -73,16 +73,16 @@ For advanced usage, first define a `PercivalSolver` to preallocate the memory us
 
 # Keyword arguments 
 - `x::V = nlp.meta.x0`: the initial guess;
-- `atol::T = T(1e-8)`: absolute tolerance.
-- `rtol::T = T(1e-8)`: relative tolerance: algorithm stops when ‖∇f(xᵏ)‖ ≤ atol + rtol * ‖∇f(x⁰)‖.
-- `ctol::T = T(1e-8)`: absolute tolerance on the feasibility ‖c(xᵏ)‖ ≤ ctol.
-- `max_eval::Int = 100000`: maximum number of evaluation of the objective function.
-- `max_time::Float64 = 30.0`: maximum time limit in seconds.
-- `max_iter::Int = 2000`: maximum number of iterations.
-- `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration.
-- `μ::Real = T(10.0)`: Starting value of the penalty parameter.
-- `subsolver_logger::AbstractLogger = NullLogger()`: logger passed to `tron`.
-- `inity = nothing`: initial values of the Lagrangian multipliers. If `nothing` the algorithm uses `Krylov.cgls` to compute an approximation.
+- `atol::T = T(1e-8)`: absolute tolerance;
+- `rtol::T = T(1e-8)`: relative tolerance;
+- `ctol::T = T(1e-8)`: absolute tolerance on the feasibility: algorithm stops when ‖∇f(xᵏ)‖ ≤ atol + rtol * ‖∇f(x⁰)‖ and ‖c(xᵏ)‖ ≤ ctol;
+- `max_eval::Int = 100000`: maximum number of evaluation of the objective function;
+- `max_time::Float64 = 30.0`: maximum time limit in seconds;
+- `max_iter::Int = 2000`: maximum number of iterations;
+- `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
+- `μ::Real = T(10.0)`: Starting value of the penalty parameter;
+- `subsolver_logger::AbstractLogger = NullLogger()`: logger passed to `tron`;
+- `inity = nothing`: initial values of the Lagrangian multipliers. If `nothing` the algorithm uses `Krylov.cgls` to compute an approximation;
 - `subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar)`: subsolver keyword arguments as a dictionary.
 
 # Output
