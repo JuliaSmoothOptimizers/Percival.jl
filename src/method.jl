@@ -75,7 +75,7 @@ For advanced usage, first define a `PercivalSolver` to preallocate the memory us
 - `x::V = nlp.meta.x0`: the initial guess;
 - `atol::T = T(1e-8)`: absolute tolerance;
 - `rtol::T = T(1e-8)`: relative tolerance;
-- `ctol::T = T(1e-8)`: absolute tolerance on the feasibility: algorithm stops when ‖∇f(xᵏ)‖ ≤ atol + rtol * ‖∇f(x⁰)‖ and ‖c(xᵏ)‖ ≤ ctol;
+- `ctol::T = T(1e-8)`: absolute tolerance on the feasibility;
 - `max_eval::Int = 100000`: maximum number of evaluation of the objective function;
 - `max_time::Float64 = 30.0`: maximum time limit in seconds;
 - `max_iter::Int = 2000`: maximum number of iterations;
@@ -84,6 +84,8 @@ For advanced usage, first define a `PercivalSolver` to preallocate the memory us
 - `subsolver_logger::AbstractLogger = NullLogger()`: logger passed to `tron`;
 - `inity = nothing`: initial values of the Lagrangian multipliers. If `nothing` the algorithm uses `Krylov.cgls` to compute an approximation;
 - `subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar)`: subsolver keyword arguments as a dictionary.
+
+The algorithm stops when ``‖c(xᵏ)‖ ≤ ctol`` and ``‖P∇L(xᵏ,λᵏ)‖ ≤ atol + rtol * ‖P∇L(x⁰,λ⁰)‖`` where ``P∇L(x,λ) := Proj_{l,u}(x - ∇f(x) + ∇c(x)ᵀλ) - x``.
 
 # Output
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
