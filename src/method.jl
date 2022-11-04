@@ -61,7 +61,7 @@ end
 """
     percival(nlp)
 
-A matrix-free augmented Lagrangian for nonlinear optimization.
+A factorization-free augmented Lagrangian for nonlinear optimization.
 
 For advanced usage, first define a `PercivalSolver` to preallocate the memory used in the algorithm, and then call `solve!`:
 
@@ -72,7 +72,7 @@ For advanced usage, first define a `PercivalSolver` to preallocate the memory us
 - `nlp::AbstractNLPModel{T, V}` is the model to solve, see `NLPModels.jl`.
 
 # Keyword arguments 
-- `x::V = nlp.meta.x0`: the initial guess.
+- `x::V = nlp.meta.x0`: the initial guess;
 - `atol::T = T(1e-8)`: absolute tolerance.
 - `rtol::T = T(1e-8)`: relative tolerance: algorithm stops when ‖∇f(xᵏ)‖ ≤ atol + rtol * ‖∇f(x⁰)‖.
 - `ctol::T = T(1e-8)`: absolute tolerance on the feasibility ‖c(xᵏ)‖ ≤ ctol.
