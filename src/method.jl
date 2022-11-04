@@ -265,9 +265,21 @@ function SolverCore.solve!(
     infeasible = penalty_too_large && norm(solver.Jtv) < √ϵp * normcx
     tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval
 
-    verbose > 0 && mod(iter, verbose) == 0 && @info log_row(
-      Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), counter_cost(nlp), inner_status, iter_type],
-    )
+    verbose > 0 &&
+      mod(iter, verbose) == 0 &&
+      @info log_row(
+        Any[
+          iter,
+          fx,
+          normgp,
+          normcx,
+          al_nlp.μ,
+          norm(y),
+          counter_cost(nlp),
+          inner_status,
+          iter_type,
+        ],
+      )
   end
 
   if solved
