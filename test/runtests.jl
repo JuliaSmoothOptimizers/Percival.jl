@@ -212,3 +212,5 @@ end
 test()
 
 include("restart.jl")
+
+include("callback.jl")
