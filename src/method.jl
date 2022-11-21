@@ -240,19 +240,19 @@ function SolverCore.solve!(
   solved = normgp ≤ ϵd && normcx ≤ ϵp
 
   set_status!(
-      stats,
-      get_status(
-        nlp,
-        elapsed_time = stats.elapsed_time,
-        iter = stats.iter,
-        optimal = solved,
-        infeasible = false,
-        penalty_too_large = false,
-        max_eval = max_eval,
-        max_time = max_time,
-        max_iter = max_iter,
-      ),
-    )
+    stats,
+    get_status(
+      nlp,
+      elapsed_time = stats.elapsed_time,
+      iter = stats.iter,
+      optimal = solved,
+      infeasible = false,
+      penalty_too_large = false,
+      max_eval = max_eval,
+      max_time = max_time,
+      max_iter = max_iter,
+    ),
+  )
 
   callback(nlp, solver, stats)
 
@@ -366,7 +366,7 @@ function get_status(
   elseif unbounded
     :unbounded
   elseif iter > max_iter
-      :max_iter
+    :max_iter
   elseif neval_obj(nlp) > max_eval ≥ 0
     :max_eval
   elseif elapsed_time > max_time
