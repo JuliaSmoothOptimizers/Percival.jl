@@ -18,6 +18,7 @@ end
 function percival(
   ::Val{:tron},
   nlp::AbstractNLPModel;
+  callback = (args...) -> nothing,
   max_iter::Int = 2000,
   max_time::Real = 30.0,
   max_eval::Int = 200000,
@@ -90,6 +91,24 @@ The algorithm stops when ``‖c(xᵏ)‖ ≤ ctol`` and ``‖P∇L(xᵏ,λᵏ)�
 # Output
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
 
+# Callback
+The callback is called at each iteration.
+The expected signature of the callback is `callback(nlp, solver, stats)`, and its output is ignored.
+Changing any of the input arguments will affect the subsequent iterations.
+In particular, setting `stats.status = :user` will stop the algorithm.
+All relevant information should be available in `nlp` and `solver`.
+Notably, you can access, and modify, the following:
+- `solver.x`: current iterate;
+- `solver.gx`: current gradient;
+- `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
+  - `stats.dual_feas`: norm of current projected gradient of Lagrangian;
+  - `stats.primal_feas`: norm of the feasibility residual;
+  - `stats.iter`: current iteration counter;
+  - `stats.objective`: current objective function value;
+  - `stats.multipliers`: current estimate of Lagrange multiplier associated with the equality constraint;
+  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention.
+  - `stats.elapsed_time`: elapsed time in seconds.
+
 # Examples
 ```jldoctest
 using Percival, ADNLPModels
@@ -151,6 +170,7 @@ function SolverCore.solve!(
   solver::PercivalSolver{V},
   nlp::AbstractNLPModel{T, V},
   stats::GenericExecutionStats{T, V};
+  callback = (args...) -> nothing,
   x::V = nlp.meta.x0,
   μ::Real = T(10.0),
   max_iter::Int = 2000,
@@ -176,11 +196,13 @@ function SolverCore.solve!(
   gp .= zero(T)
   Jx = jac_op(nlp, x)
   fx, gx = objgrad!(nlp, x, gx)
+  set_objective!(stats, fx)
 
   # Lagrange multiplier
   y = inity === nothing ? with_logger(subsolver_logger) do
     cgls(Jx', gx)[1]
   end : inity
+  set_constraint_multipliers!(stats, y)
   # tolerance
   η = T(0.5)
   ω = T(1.0)
@@ -195,14 +217,16 @@ function SolverCore.solve!(
   project_step!(gp, x, -gL, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gL) - x
   normgp = norm(gp)
   normcx = norm(al_nlp.cx)
+  set_residuals!(stats, normcx, normgp)
 
   # tolerance for optimal measure
   ϵd = atol + rtol * normgp
   ϵp = ctol
 
-  iter = 0
+  reset!(stats)
+  set_iter!(stats, 0)
   start_time = time()
-  el_time = 0.0
+  set_time!(stats, 0.0)
   rem_eval = max_eval
 
   if verbose > 0
@@ -210,15 +234,31 @@ function SolverCore.solve!(
       [:iter, :fx, :normgp, :normcx, :μ, :normy, :sumc, :inner_status, :iter_type],
       [Int, Float64, Float64, Float64, Float64, Float64, Int, Symbol, Symbol],
     )
-    @info log_row(Any[iter, fx, normgp, normcx, al_nlp.μ, norm(y), counter_cost(nlp)])
+    @info log_row(Any[stats.iter, fx, normgp, normcx, al_nlp.μ, norm(y), counter_cost(nlp)])
   end
 
   solved = normgp ≤ ϵd && normcx ≤ ϵp
-  infeasible = false
-  penalty_too_large = false
-  tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval
 
-  while !(solved || infeasible || tired || penalty_too_large)
+  set_status!(
+      stats,
+      get_status(
+        nlp,
+        elapsed_time = stats.elapsed_time,
+        iter = stats.iter,
+        optimal = solved,
+        infeasible = false,
+        penalty_too_large = false,
+        max_eval = max_eval,
+        max_time = max_time,
+        max_iter = max_iter,
+      ),
+    )
+
+  callback(nlp, solver, stats)
+
+  done = stats.status != :unknown
+
+  while !done
     # solve subproblem
     S = with_logger(subsolver_logger) do
       tron(
@@ -227,7 +267,7 @@ function SolverCore.solve!(
         cgtol = ω,
         rtol = ω,
         atol = ω,
-        max_time = max_time - el_time,
+        max_time = max_time - stats.elapsed_time,
         max_eval = min(subsolver_max_eval, rem_eval),
         subsolver_kwargs...,
       )
@@ -236,11 +276,13 @@ function SolverCore.solve!(
 
     normcx = norm(al_nlp.cx)
     fx = S.objective + dot(al_nlp.y, al_nlp.cx) - normcx^2 * al_nlp.μ / 2
+    set_objective!(stats, fx)
 
     iter_type = if normcx <= η
       update_y!(al_nlp)
       η = max(η / al_nlp.μ^T(0.9), ϵp)
       ω /= al_nlp.μ
+      set_constraint_multipliers!(stats, al_nlp.y)
       :update_y
     else
       update_μ!(al_nlp, 10 * al_nlp.μ)
@@ -255,21 +297,21 @@ function SolverCore.solve!(
     gL .= gx .- solver.Jtv
     project_step!(gp, al_nlp.x, -gL, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gL) - x
     normgp = norm(gp)
+    set_residuals!(stats, normcx, normgp)
 
-    iter += 1
-    el_time = time() - start_time
+    set_iter!(stats, stats.iter + 1)
+    set_time!(stats, time() - start_time)
     rem_eval = max_eval - neval_obj(nlp)
     solved = normgp ≤ ϵd && normcx ≤ ϵp
     jtprod!(nlp, al_nlp.x, al_nlp.cx, solver.Jtv)
     penalty_too_large = al_nlp.μ > 1 / eps(T)
     infeasible = penalty_too_large && norm(solver.Jtv) < √ϵp * normcx
-    tired = iter > max_iter || el_time > max_time || neval_obj(nlp) > max_eval
 
     verbose > 0 &&
-      mod(iter, verbose) == 0 &&
+      mod(stats.iter, verbose) == 0 &&
       @info log_row(
         Any[
-          iter,
+          stats.iter,
           fx,
           normgp,
           normcx,
@@ -280,30 +322,58 @@ function SolverCore.solve!(
           iter_type,
         ],
       )
+
+    set_status!(
+      stats,
+      get_status(
+        nlp,
+        elapsed_time = stats.elapsed_time,
+        iter = stats.iter,
+        optimal = solved,
+        infeasible = infeasible,
+        penalty_too_large = penalty_too_large,
+        max_eval = max_eval,
+        max_time = max_time,
+        max_iter = max_iter,
+      ),
+    )
+
+    callback(nlp, solver, stats)
+
+    done = stats.status != :unknown
   end
 
-  if solved
-    status = :first_order
-  elseif infeasible
-    status = :infeasible
-  elseif tired
-    if iter > max_iter
-      status = :max_iter
-    elseif el_time > max_time
-      status = :max_time
-    elseif neval_obj(nlp) > max_eval
-      status = :max_eval
-    end
-  elseif penalty_too_large
-    status = :stalled
-  end
-
-  set_status!(stats, status)
-  set_solution!(stats, al_nlp.x)
-  set_objective!(stats, fx)
-  set_residuals!(stats, normcx, normgp)
-  set_iter!(stats, iter)
-  set_time!(stats, el_time)
-  set_constraint_multipliers!(stats, y)
+  set_solution!(stats, x)
   stats
+end
+
+function get_status(
+  nlp;
+  elapsed_time = 0.0,
+  iter = 0,
+  optimal = false,
+  infeasible = false,
+  penalty_too_large = false,
+  unbounded = false,
+  max_eval = Inf,
+  max_time = Inf,
+  max_iter = Inf,
+)
+  if optimal
+    :first_order
+  elseif infeasible
+    :infeasible
+  elseif unbounded
+    :unbounded
+  elseif iter > max_iter
+      :max_iter
+  elseif neval_obj(nlp) > max_eval ≥ 0
+    :max_eval
+  elseif elapsed_time > max_time
+    :max_time
+  elseif penalty_too_large
+    :stalled
+  else
+    :unknown
+  end
 end
