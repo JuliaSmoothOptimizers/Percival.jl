@@ -102,10 +102,10 @@ Notably, you can access, and modify, the following:
 - `solver.gx`: current gradient;
 - `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
   - `stats.dual_feas`: norm of current projected gradient of Lagrangian;
-  - `stats.primal_feas`: norm of the feasibility;
+  - `stats.primal_feas`: norm of the feasibility residual;
   - `stats.iter`: current iteration counter;
   - `stats.objective`: current objective function value;
-  - `stats.multipliers`: current estimate of Lagrange multiplier associated to the equality constraint;
+  - `stats.multipliers`: current estimate of Lagrange multiplier associated with the equality constraint;
   - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention.
   - `stats.elapsed_time`: elapsed time in seconds.
 
