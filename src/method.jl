@@ -136,19 +136,24 @@ mutable struct PercivalSolver{V} <: AbstractOptimizationSolver
   gL::V
   gp::V
   Jtv::V
+  sub_pb::AugLagModel
+  sub_solver::TronSolver
 end
 
-function PercivalSolver(nlp::AbstractNLPModel{T, V}) where {T, V}
-  nvar = nlp.meta.nvar
+function PercivalSolver(nlp::AbstractNLPModel{T, V}; subproblem_modifier = identity) where {T, V}
+  nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
   x = V(undef, nvar)
   gx = V(undef, nvar)
   gL = V(undef, nvar)
   gp = V(undef, nvar)
   Jtv = V(undef, nvar)
-  return PercivalSolver{V}(x, gx, gL, gp, Jtv)
+
+  sub_pb = AugLagModel(nlp, V(undef, ncon), T(0), x, T(0), V(undef, ncon))
+  sub_solver = TronSolver(subproblem_modifier(sub_pb))
+  return PercivalSolver{V}(x, gx, gL, gp, Jtv, sub_pb, sub_solver)
 end
 
-@doc (@doc PercivalSolver) function percival(::Val{:equ}, nlp::AbstractNLPModel; kwargs...)
+@doc (@doc PercivalSolver) function percival(::Val{:equ}, nlp::AbstractNLPModel; subproblem_modifier = identity, kwargs...)
   if !(nlp.meta.minimize)
     error("Percival only works for minimization problem")
   end
@@ -157,14 +162,34 @@ end
       "percival(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use percival(nlp)",
     )
   end
-  solver = PercivalSolver(nlp)
-  SolverCore.solve!(solver, nlp; kwargs...)
+  solver = PercivalSolver(nlp, subproblem_modifier = subproblem_modifier)
+  SolverCore.solve!(solver, nlp; subproblem_modifier = subproblem_modifier, kwargs...)
 end
 
 function SolverCore.reset!(solver::PercivalSolver)
   solver
 end
-SolverCore.reset!(solver::PercivalSolver, ::AbstractNLPModel) = reset!(solver)
+function SolverCore.reset!(solver::PercivalSolver, model::AbstractNLPModel)
+  solver.sub_pb.model = model
+  solver.sub_pb.meta.x0 .= model.meta.x0
+  solver.sub_pb.meta.lvar .= model.meta.lvar
+  solver.sub_pb.meta.uvar .= model.meta.uvar
+  solver
+end
+
+function reinit!(al_nlp::AugLagModel{M, T, V}, model::M, fx::T, μ::T, x::V, y::V) where {M, T, V}
+  reset!(al_nlp)
+  al_nlp.store_Jv .= zero(T)
+  al_nlp.store_Jtv .= zero(T)
+  al_nlp.fx = fx
+  al_nlp.y .= y
+  al_nlp.x .= x
+  al_nlp.μ = μ
+  cons!(model, x, al_nlp.cx)
+  al_nlp.cx .-= model.meta.lcon
+  al_nlp.μc_y .= μ .* al_nlp.cx .- y
+  al_nlp
+end
 
 function SolverCore.solve!(
   solver::PercivalSolver{V},
@@ -188,6 +213,7 @@ function SolverCore.solve!(
 ) where {T, V}
   counter_cost(nlp) = neval_obj(nlp) + 2 * neval_grad(nlp)
 
+  reset!(stats)
   x = solver.x .= x
   gx = solver.gx
   x .= max.(nlp.meta.lvar, min.(x, nlp.meta.uvar))
@@ -208,7 +234,8 @@ function SolverCore.solve!(
   ω = T(1.0)
 
   # create initial subproblem
-  al_nlp = AugLagModel(nlp, y, T(μ), x, fx, cons(nlp, x) - nlp.meta.lcon)
+  al_nlp = solver.sub_pb
+  reinit!(al_nlp, nlp, fx, μ, x, y)
 
   # stationarity measure
   jtprod!(nlp, x, y, solver.Jtv)
@@ -223,7 +250,6 @@ function SolverCore.solve!(
   ϵd = atol + rtol * normgp
   ϵp = ctol
 
-  reset!(stats)
   set_iter!(stats, 0)
   start_time = time()
   set_time!(stats, 0.0)
@@ -260,8 +286,10 @@ function SolverCore.solve!(
 
   while !done
     # solve subproblem
+    reset!(solver.sub_solver, subproblem_modifier(al_nlp))
     S = with_logger(subsolver_logger) do
-      tron(
+      solve!(
+        solver.sub_solver,
         subproblem_modifier(al_nlp);
         x = copy(al_nlp.x),
         cgtol = ω,
