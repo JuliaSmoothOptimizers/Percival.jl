@@ -153,7 +153,12 @@ function PercivalSolver(nlp::AbstractNLPModel{T, V}; subproblem_modifier = ident
   return PercivalSolver{V}(x, gx, gL, gp, Jtv, sub_pb, sub_solver)
 end
 
-@doc (@doc PercivalSolver) function percival(::Val{:equ}, nlp::AbstractNLPModel; subproblem_modifier = identity, kwargs...)
+@doc (@doc PercivalSolver) function percival(
+  ::Val{:equ},
+  nlp::AbstractNLPModel;
+  subproblem_modifier = identity,
+  kwargs...,
+)
   if !(nlp.meta.minimize)
     error("Percival only works for minimization problem")
   end
