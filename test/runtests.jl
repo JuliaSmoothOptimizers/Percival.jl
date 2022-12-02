@@ -1,12 +1,30 @@
 using Percival
 
-using ADNLPModels,
-  JSOSolvers, LinearAlgebra, Logging, SolverTest, SparseArrays, NLPModelsModifiers, Test
+using ADNLPModels, JSOSolvers, LinearAlgebra, Logging, SolverTest, SparseArrays, Test
 
-using NLPModels, SolverCore
+using NLPModels, SolverCore, NLPModelsModifiers, NLPModelsTest
 
 mutable struct DummyModel{T, S} <: AbstractNLPModel{T, S}
   meta::NLPModelMeta{T, S}
+end
+
+if v"1.7" <= VERSION
+  list_of_problems = NLPModelsTest.nlp_problems
+
+  T = Float64
+  for problem in list_of_problems
+    nlp = eval(Symbol(problem))(T)
+    if nlp.meta.ncon > 0
+      μ = one(T)
+      x = nlp.meta.x0
+      fx = obj(nlp, x)
+      y = nlp.meta.y0
+      cx = similar(y)
+      model = Percival.AugLagModel(nlp, y, μ, x, fx, cx)
+
+      test_zero_allocations(model, exclude = [hess])
+    end
+  end
 end
 
 function test()
