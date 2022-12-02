@@ -165,6 +165,6 @@ function NLPModels.hprod!(
   jprod!(nlp.model, x, v, nlp.store_Jv)
   jtprod!(nlp.model, x, nlp.store_Jv, nlp.store_Jtv)
   hprod!(nlp.model, x, nlp.μc_y, v, Hv, obj_weight = obj_weight)
-  Hv .+= nlp.μ * nlp.store_Jtv
+  Hv .+= nlp.μ .* nlp.store_Jtv
   return Hv
 end
