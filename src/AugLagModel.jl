@@ -49,7 +49,13 @@ function AugLagModel(model::AbstractNLPModel{T, V}, y::V, μ::T, x::V, fx::T, cx
   @lencheck nvar x
   μ ≥ 0 || error("Penalty parameter μ should be ≥ 0")
 
-  meta = NLPModelMeta(nvar, x0 = model.meta.x0, lvar = model.meta.lvar, uvar = model.meta.uvar, name = "AugLagModel-$(model.meta.name)")
+  meta = NLPModelMeta(
+    nvar,
+    x0 = model.meta.x0,
+    lvar = model.meta.lvar,
+    uvar = model.meta.uvar,
+    name = "AugLagModel-$(model.meta.name)",
+  )
 
   return AugLagModel(
     meta,
