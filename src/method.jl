@@ -28,6 +28,7 @@ function percival(
   subproblem_modifier = identity,
   subsolver_logger::AbstractLogger = NullLogger(),
   subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
+  kwargs...,
 )
   if !(unconstrained(nlp) || bound_constrained(nlp))
     error(
