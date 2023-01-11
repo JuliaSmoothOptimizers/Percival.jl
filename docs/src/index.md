@@ -20,7 +20,14 @@ It was implemented as part of the Master's dissertation of Egmara Antunes.
 
 The `percival` method expects a single mandatory argument - an [AbstractNLPModel](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) - and returns a GenericExecutionStats from [SolverCore.jl](https://github.com/JuliaSmoothOptimizers/SolverCore.jl).
 
-We refer to [juliasmoothoptimizers.github.io](https://juliasmoothoptimizers.github.io) for tutorials on the NLPModel API. This framework allows the usage of models from Ampl (using [AmplNLReader.jl](https://github.com/JuliaSmoothOptimizers/AmplNLReader.jl)), CUTEst (using [CUTEst.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl)), JuMP (using [NLPModelsJuMP.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsJuMP.jl)), PDE-constrained optimization problems (using [PDENLPModels.jl](https://github.com/JuliaSmoothOptimizers/PDENLPModels.jl)) and models defined with automatic differentiation (using [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl)).
+We refer to [juliasmoothoptimizers.github.io](https://juliasmoothoptimizers.github.io) for tutorials on the NLPModel API. 
+The functions used to access the NLPModel in general, are defined in `NLPModels.jl`. So, for instance, you can access the objective function's documentation as follows
+```julia
+using NLPModels
+? obj
+```
+or visit directly [NLPModels.jl's documentation](https://juliasmoothoptimizers.github.io/NLPModels.jl/dev/api/).
+This framework allows the usage of models from Ampl (using [AmplNLReader.jl](https://github.com/JuliaSmoothOptimizers/AmplNLReader.jl)), CUTEst (using [CUTEst.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl)), JuMP (using [NLPModelsJuMP.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsJuMP.jl)), PDE-constrained optimization problems (using [PDENLPModels.jl](https://github.com/JuliaSmoothOptimizers/PDENLPModels.jl)) and models defined with automatic differentiation (using [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl)).
 
 ## Installation
 
