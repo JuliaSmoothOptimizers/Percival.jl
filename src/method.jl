@@ -173,6 +173,7 @@ const percival_keys = (
   ::Val{:equ},
   nlp::AbstractNLPModel;
   subproblem_modifier = identity,
+  subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
   kwargs...,
 )
   if !(nlp.meta.minimize)
@@ -183,14 +184,14 @@ const percival_keys = (
       "percival(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use percival(nlp)",
     )
   end
-  dict = Dict(kwargs)
-  subsolver_keys = intersect(keys(dict), percival_keys)
-  subsolver_kwargs = Dict(k => dict[k] for k in subsolver_keys)
-  solver = PercivalSolver(nlp; subproblem_modifier = subproblem_modifier, subsolver_kwargs...)
+  subsolver_keys = intersect(keys(subsolver_kwargs), percival_keys)
+  solver_kwargs = Dict(k => subsolver_kwargs[k] for k in subsolver_keys)
+  solver = PercivalSolver(nlp; subproblem_modifier = subproblem_modifier, solver_kwargs...)
+  sub_kwargs = copy(subsolver_kwargs)
   for k in subsolver_keys
-    pop!(dict, k)
+    pop!(sub_kwargs, k)
   end
-  SolverCore.solve!(solver, nlp; subproblem_modifier = subproblem_modifier, dict...)
+  SolverCore.solve!(solver, nlp; subproblem_modifier = subproblem_modifier, subsolver_kwargs = sub_kwargs, kwargs...)
 end
 
 function SolverCore.reset!(solver::PercivalSolver)

@@ -242,6 +242,10 @@ include("callback.jl")
     function cb(nlp, solver, stats)
       @test solver.sub_solver.tr.radius ≤ max_radius
     end
+    subsolver_kwargs = Dict(
+      :max_radius => max_radius,
+      :increase_factor => increase_factor,
+    )
 
     nlp = ADNLPModel(
       x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2,
@@ -250,7 +254,7 @@ include("callback.jl")
       [-Inf],
       [1.0],
     )
-    stats = percival(nlp, max_radius = max_radius, increase_factor = increase_factor, callback = cb)
+    stats = percival(nlp, subsolver_kwargs = subsolver_kwargs, callback = cb)
 
     nls = ADNLSModel(
       x -> [100 * (x[2] - x[1]^2); x[1] - 1],
@@ -260,6 +264,6 @@ include("callback.jl")
       [-Inf],
       [1.0],
     )
-    stats = percival(nls, max_radius = max_radius, increase_factor = increase_factor, callback = cb)
+    stats = percival(nls, subsolver_kwargs = subsolver_kwargs, callback = cb)
   end
 end
