@@ -158,8 +158,8 @@ function PercivalSolver(
   return PercivalSolver{V}(x, gx, gL, gp, Jtv, sub_pb, sub_solver)
 end
 
-# List of keywords accepted by TronSolver
-const tron_keys = (
+# List of keywords accepted by PercivalSolver
+const percival_keys = (
   :max_radius,
   :acceptance_threshold,
   :decrease_threshold,
@@ -184,7 +184,7 @@ const tron_keys = (
     )
   end
   dict = Dict(kwargs)
-  subsolver_keys = intersect(keys(dict), tron_keys)
+  subsolver_keys = intersect(keys(dict), percival_keys)
   subsolver_kwargs = Dict(k => dict[k] for k in subsolver_keys)
   solver = PercivalSolver(nlp; subproblem_modifier = subproblem_modifier, subsolver_kwargs...)
   for k in subsolver_keys
