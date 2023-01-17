@@ -141,7 +141,11 @@ mutable struct PercivalSolver{V} <: AbstractOptimizationSolver
   sub_solver::TronSolver
 end
 
-function PercivalSolver(nlp::AbstractNLPModel{T, V}; subproblem_modifier = identity) where {T, V}
+function PercivalSolver(
+  nlp::AbstractNLPModel{T, V};
+  subproblem_modifier = identity,
+  kwargs...,
+) where {T, V}
   nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
   x = V(undef, nvar)
   gx = V(undef, nvar)
@@ -150,9 +154,20 @@ function PercivalSolver(nlp::AbstractNLPModel{T, V}; subproblem_modifier = ident
   Jtv = V(undef, nvar)
 
   sub_pb = AugLagModel(nlp, V(undef, ncon), T(0), x, T(0), V(undef, ncon))
-  sub_solver = TronSolver(subproblem_modifier(sub_pb))
+  sub_solver = TronSolver(subproblem_modifier(sub_pb); kwargs...)
   return PercivalSolver{V}(x, gx, gL, gp, Jtv, sub_pb, sub_solver)
 end
+
+# List of keywords accepted by TronSolver
+const tron_keys = (
+  :max_radius,
+  :acceptance_threshold,
+  :decrease_threshold,
+  :increase_threshold,
+  :large_decrease_factor,
+  :small_decrease_factor,
+  :increase_factor,
+)
 
 @doc (@doc PercivalSolver) function percival(
   ::Val{:equ},
@@ -168,8 +183,14 @@ end
       "percival(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use percival(nlp)",
     )
   end
-  solver = PercivalSolver(nlp, subproblem_modifier = subproblem_modifier)
-  SolverCore.solve!(solver, nlp; subproblem_modifier = subproblem_modifier, kwargs...)
+  dict = Dict(kwargs)
+  subsolver_keys = intersect(keys(dict), tron_keys)
+  subsolver_kwargs = Dict(k => dict[k] for k in subsolver_keys)
+  solver = PercivalSolver(nlp; subproblem_modifier = subproblem_modifier, subsolver_kwargs...)
+  for k in subsolver_keys
+    pop!(dict, k)
+  end
+  SolverCore.solve!(solver, nlp; subproblem_modifier = subproblem_modifier, dict...)
 end
 
 function SolverCore.reset!(solver::PercivalSolver)
