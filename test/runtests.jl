@@ -234,3 +234,36 @@ test()
 include("restart.jl")
 
 include("callback.jl")
+
+@testset "Change TRON solver parameters" begin
+  @testset "Test max_radius in TRON" begin
+    max_radius = 0.00314
+    increase_factor = 5.0
+    function cb(nlp, solver, stats)
+      @test solver.sub_solver.tr.radius ≤ max_radius
+    end
+    subsolver_kwargs = Dict(
+      :max_radius => max_radius,
+      :increase_factor => increase_factor,
+    )
+
+    nlp = ADNLPModel(
+      x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2,
+      [-1.2; 1.0],
+      x -> [x[1]^2 + x[2]^2],
+      [-Inf],
+      [1.0],
+    )
+    stats = percival(nlp, subsolver_kwargs = subsolver_kwargs, callback = cb)
+
+    nls = ADNLSModel(
+      x -> [100 * (x[2] - x[1]^2); x[1] - 1],
+      [-1.2; 1.0],
+      2,
+      x -> [x[1]^2 + x[2]^2],
+      [-Inf],
+      [1.0],
+    )
+    stats = percival(nls, subsolver_kwargs = subsolver_kwargs, callback = cb)
+  end
+end
