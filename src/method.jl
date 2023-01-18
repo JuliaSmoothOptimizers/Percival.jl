@@ -159,7 +159,7 @@ function PercivalSolver(
 end
 
 # List of keywords accepted by PercivalSolver
-const percival_keys = (
+const trustregion_keys = (
   :max_radius,
   :acceptance_threshold,
   :decrease_threshold,
@@ -184,7 +184,7 @@ const percival_keys = (
       "percival(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use percival(nlp)",
     )
   end
-  subsolver_keys = intersect(keys(subsolver_kwargs), percival_keys)
+  subsolver_keys = intersect(keys(subsolver_kwargs), trustregion_keys)
   solver_kwargs = Dict(k => subsolver_kwargs[k] for k in subsolver_keys)
   solver = PercivalSolver(nlp; subproblem_modifier = subproblem_modifier, solver_kwargs...)
   sub_kwargs = copy(subsolver_kwargs)
