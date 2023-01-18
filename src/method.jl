@@ -191,7 +191,13 @@ const trustregion_keys = (
   for k in subsolver_keys
     pop!(sub_kwargs, k)
   end
-  SolverCore.solve!(solver, nlp; subproblem_modifier = subproblem_modifier, subsolver_kwargs = sub_kwargs, kwargs...)
+  SolverCore.solve!(
+    solver,
+    nlp;
+    subproblem_modifier = subproblem_modifier,
+    subsolver_kwargs = sub_kwargs,
+    kwargs...,
+  )
 end
 
 function SolverCore.reset!(solver::PercivalSolver)

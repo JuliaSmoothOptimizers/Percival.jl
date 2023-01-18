@@ -242,10 +242,7 @@ include("callback.jl")
     function cb(nlp, solver, stats)
       @test solver.sub_solver.tr.radius ≤ max_radius
     end
-    subsolver_kwargs = Dict(
-      :max_radius => max_radius,
-      :increase_factor => increase_factor,
-    )
+    subsolver_kwargs = Dict(:max_radius => max_radius, :increase_factor => increase_factor)
 
     nlp = ADNLPModel(
       x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2,
