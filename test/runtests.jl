@@ -251,7 +251,8 @@ include("callback.jl")
       [-Inf],
       [1.0],
     )
-    stats = percival(nlp, subsolver_kwargs = subsolver_kwargs, callback = cb)
+    x = nlp.meta.x0
+    stats = percival(nlp, x = x, subsolver_kwargs = subsolver_kwargs, callback = cb)
 
     nls = ADNLSModel(
       x -> [100 * (x[2] - x[1]^2); x[1] - 1],
@@ -261,6 +262,7 @@ include("callback.jl")
       [-Inf],
       [1.0],
     )
-    stats = percival(nls, subsolver_kwargs = subsolver_kwargs, callback = cb)
+    x = nls.meta.x0
+    stats = percival(nls, x = x, subsolver_kwargs = subsolver_kwargs, callback = cb)
   end
 end

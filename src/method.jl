@@ -48,14 +48,20 @@ function percival(
   )
 end
 
-function percival(::Val{:ineq}, nlp::AbstractNLPModel; kwargs...)
+function percival(::Val{:ineq}, nlp::AbstractNLPModel; x::V = nlp.meta.x0, kwargs...) where {V}
   if nlp.meta.ncon == 0 || equality_constrained(nlp)
     error(
       "percival(::Val{:ineq}, nlp) should only be called for problems with inequalities. Use percival(nlp)",
     )
   end
   snlp = SlackModel(nlp)
-  output = percival(Val(:equ), snlp; kwargs...)
+  if length(x) != snlp.meta.nvar
+    x0 = fill!(V(undef, snlp.meta.nvar), zero(eltype(V)))
+    x0[1:(nlp.meta.nvar)] .= x
+  else
+    x0 = x
+  end
+  output = percival(Val(:equ), snlp; x = x0, kwargs...)
   output.solution = output.solution[1:(nlp.meta.nvar)]
   return output
 end
@@ -248,6 +254,7 @@ function SolverCore.solve!(
   counter_cost(nlp) = neval_obj(nlp) + 2 * neval_grad(nlp)
 
   reset!(stats)
+  @lencheck nlp.meta.nvar x
   x = solver.x .= x
   gx = solver.gx
   x .= max.(nlp.meta.lvar, min.(x, nlp.meta.uvar))
