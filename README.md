@@ -36,7 +36,7 @@ $$
 \end{equation}
 $$
 
-You can solve an JuMP model `mmodel` by using [NLPModelsJuMP.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsJuMP.jl) to convert it.
+You can solve an JuMP model `model` by using [NLPModelsJuMP.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsJuMP.jl) to convert it.
 ```julia
 using JuMP, NLPModelsJuMP, Percival
 model = Model()
