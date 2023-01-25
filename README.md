@@ -32,7 +32,7 @@ Consider the following 2-dimensional optimization problem with an equality const
 
 $$
 \begin{equation}
-\min_{(x_1,x_2)} \quad (x_1 - 1)^2 + 100 (x_2 - x_1^2)^2 \quad \text{s.to} \quad x_1^2 + x_2^2 \leq 1.
+\min_{(x_1,x_2)} \quad (x_1 - 1)^2 + 100 (x_2 - x_1^2)^2 \quad \text{s.to} \quad x_1^2 + x_2^2 = 1.
 \end{equation}
 $$
 
