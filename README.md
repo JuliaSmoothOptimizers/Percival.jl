@@ -23,15 +23,41 @@ If you use Percival.jl in your work, please cite using the format given in [CITA
 
 Use `]` to enter `pkg>` mode of Julia, then
 ```julia
-pkg> add https://github.com/JuliaSmoothOptimizers/Percival.jl
+pkg> add Percival
 ```
-## Use with JuMP
 
-You can solve an JuMP model `m` by using NLPModels to convert it.
+## Examples
+
+Consider the following 2-dimensional optimization problem with an equality constraint
+
+$$
+\begin{equation}
+\min_{(x_1,x_2)} \quad (x_1 - 1)^2 + 100 (x_2 - x_1^2)^2 \quad \text{s.to} \quad x_1^2 + x_2^2 = 1.
+\end{equation}
+$$
+
+You can solve an JuMP model `model` by using [NLPModelsJuMP.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsJuMP.jl) to convert it.
+```julia
+using JuMP, NLPModelsJuMP, Percival
+model = Model()
+@variable(model, x[i=1:2], start = [-1.2; 1.0][i])
+@NLobjective(model, Min, (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2)
+@NLconstraint(model, x[1]^2 + x[2]^2 == 1)
+nlp = MathOptNLPModel(model) # thin wrapper converting JuMP Model as NLPModel
+output = percival(nlp, verbose = 1)
 ```
-using NLPModelsJuMP, Percival
-nlp = MathOptNLPModel(m)
-output = percival(nlp)
+
+`percival` accept as input any instance of `AbstractNLPModel`, for instance, using automatic differentiation via [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl) to solve the same problem.
+```julia
+using ADNLPModels, Percival
+nlp = ADNLPModel(
+  x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2,
+  [-1.2; 1.0],
+  x -> [x[1]^2 + x[2]^2],
+  [1.0],
+  [1.0],
+)
+output = percival(nlp, verbose = 1)
 ```
 
 # Bug reports and discussions
