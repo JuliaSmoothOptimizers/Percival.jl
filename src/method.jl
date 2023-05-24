@@ -39,9 +39,11 @@ function percival(
   return tron(
     subproblem_modifier(nlp);
     subsolver_logger = subsolver_logger,
+    callback = callback,
     atol = atol,
     rtol = rtol,
     max_eval = max_eval,
+    max_iter = max_iter,
     max_time = max_time,
     verbose = verbose,
     subsolver_kwargs...,
@@ -327,11 +329,12 @@ function SolverCore.solve!(
 
   while !done
     # solve subproblem
-    reset!(solver.sub_solver, subproblem_modifier(al_nlp))
+    model = subproblem_modifier(al_nlp)
+    reset!(solver.sub_solver, model)
     S = with_logger(subsolver_logger) do
       solve!(
         solver.sub_solver,
-        subproblem_modifier(al_nlp);
+        model;
         x = copy(al_nlp.x),
         cgtol = ω,
         rtol = ω,
