@@ -388,7 +388,7 @@ function SolverCore.solve!(
           normgp,
           normcx,
           al_nlp.μ,
-          norm(y),
+          norm(al_nlp.y),
           counter_cost(nlp),
           inner_status,
           iter_type,
