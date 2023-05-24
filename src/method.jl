@@ -26,7 +26,6 @@ function percival(
   rtol::Real = 1e-8,
   verbose::Integer = 0,
   subproblem_modifier = identity,
-  subsolver_logger::AbstractLogger = NullLogger(),
   subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
   kwargs...,
 )
@@ -38,7 +37,6 @@ function percival(
   @warn "Problem does not have general constraints; calling tron"
   return tron(
     subproblem_modifier(nlp);
-    subsolver_logger = subsolver_logger,
     callback = callback,
     atol = atol,
     rtol = rtol,
