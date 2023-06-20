@@ -91,7 +91,7 @@ For advanced usage, first define a `PercivalSolver` to preallocate the memory us
 - `μ::Real = T(10.0)`: Starting value of the penalty parameter;
 - `subsolver_logger::AbstractLogger = NullLogger()`: logger passed to `tron`;
 - `cgls_verbose::Int = 0`: verbosity level in `Krylov.cgls`;
-- `inity::Bool = false`: If `false` the algorithm uses `Krylov.cgls` to compute an approximation, otherwise we use `nlp.meta.y0`;
+- `inity::Bool = false`: If `true` the algorithm uses `Krylov.cgls` to compute an approximation, otherwise we use `nlp.meta.y0`;
 - `subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar)`: subsolver keyword arguments as a dictionary.
 
 The algorithm stops when ``‖c(xᵏ)‖ ≤ ctol`` and ``‖P∇L(xᵏ,λᵏ)‖ ≤ atol + rtol * ‖P∇L(x⁰,λ⁰)‖`` where ``P∇L(x,λ) := Proj_{l,u}(x - ∇f(x) + ∇c(x)ᵀλ) - x``.
