@@ -113,7 +113,7 @@ end
 Given an `AugLagModel`, update `nlp.y = -nlp.μc_y` and updates `nlp.μc_y` accordingly.
 """
 function update_y!(nlp::AugLagModel)
-  nlp.y .= -nlp.μc_y
+  nlp.y .= .-nlp.μc_y
   nlp.μc_y .= nlp.μ .* nlp.cx .- nlp.y
 end
 
