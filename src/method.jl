@@ -295,7 +295,8 @@ function SolverCore.solve!(
   jtprod!(nlp, x, y, solver.Jtv)
   gL = solver.gL
   gL .= gx .- solver.Jtv
-  project_step!(gp, x, -gL, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gL) - x
+  gL .*= -1
+  project_step!(gp, x, gL, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gL) - x
   normgp = norm(gp)
   normcx = norm(al_nlp.cx)
   set_residuals!(stats, normcx, normgp)
@@ -378,7 +379,8 @@ function SolverCore.solve!(
     grad!(nlp, al_nlp.x, gx)
     jtprod!(nlp, al_nlp.x, al_nlp.y, solver.Jtv)
     gL .= gx .- solver.Jtv
-    project_step!(gp, al_nlp.x, -gL, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gL) - x
+    gL .*= -1
+    project_step!(gp, al_nlp.x, gL, nlp.meta.lvar, nlp.meta.uvar) # Proj(x - gL) - x
     normgp = norm(gp)
     set_residuals!(stats, normcx, normgp)
 
