@@ -90,7 +90,8 @@ For advanced usage, first define a `PercivalSolver` to preallocate the memory us
 - `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
 - `μ::Real = T(10.0)`: Starting value of the penalty parameter;
 - `subsolver_logger::AbstractLogger = NullLogger()`: logger passed to `tron`;
-- `inity = nothing`: initial values of the Lagrangian multipliers. If `nothing` the algorithm uses `Krylov.cgls` to compute an approximation;
+- `cgls_verbose::Int = 0`: verbosity level in `Krylov.cgls`;
+- `inity::Bool = false`: If `true` the algorithm uses `Krylov.cgls` to compute an approximation, otherwise we use `nlp.meta.y0`;
 - `subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar)`: subsolver keyword arguments as a dictionary.
 
 The algorithm stops when ``‖c(xᵏ)‖ ≤ ctol`` and ``‖P∇L(xᵏ,λᵏ)‖ ≤ atol + rtol * ‖P∇L(x⁰,λ⁰)‖`` where ``P∇L(x,λ) := Proj_{l,u}(x - ∇f(x) + ∇c(x)ᵀλ) - x``.
@@ -137,12 +138,15 @@ stats = solve!(solver, nlp)
 "Execution stats: first-order stationary"
 ```
 """
-mutable struct PercivalSolver{V} <: AbstractOptimizationSolver
+mutable struct PercivalSolver{V, Op} <: AbstractOptimizationSolver
   x::V
+  y::V
   gx::V
   gL::V
   gp::V
   Jtv::V
+  Jx::Op
+  cgls_solver::CglsSolver
   sub_pb::AugLagModel
   sub_solver::TronSolver
 end
@@ -154,14 +158,18 @@ function PercivalSolver(
 ) where {T, V}
   nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
   x = V(undef, nvar)
+  y = V(undef, ncon)
   gx = V(undef, nvar)
   gL = V(undef, nvar)
   gp = V(undef, nvar)
   Jtv = V(undef, nvar)
 
+  Jx = jac_op(nlp, x) # jac_op!(nlp, x, Jv, Jtv) 
+  cgls_solver = CglsSolver(Jx', gx)
+
   sub_pb = AugLagModel(nlp, V(undef, ncon), T(0), x, T(0), V(undef, ncon))
   sub_solver = TronSolver(subproblem_modifier(sub_pb); kwargs...)
-  return PercivalSolver{V}(x, gx, gL, gp, Jtv, sub_pb, sub_solver)
+  return PercivalSolver{V, typeof(Jx)}(x, y, gx, gL, gp, Jtv, Jx, cgls_solver, sub_pb, sub_solver)
 end
 
 # List of keywords accepted by PercivalSolver
@@ -245,7 +253,8 @@ function SolverCore.solve!(
   rtol::Real = T(1e-8),
   ctol::Real = T(1e-8),
   subsolver_logger::AbstractLogger = NullLogger(),
-  inity = nothing,
+  cgls_verbose::Int = 0,
+  inity::Bool = false,
   subproblem_modifier = identity,
   subsolver_max_eval = max_eval,
   subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
@@ -266,9 +275,13 @@ function SolverCore.solve!(
   set_objective!(stats, fx)
 
   # Lagrange multiplier
-  y = inity === nothing ? with_logger(subsolver_logger) do
-    cgls(Jx', gx)[1]
-  end : inity
+  y = solver.y
+  if inity
+    cgls!(solver.cgls_solver, Jx', gx, verbose = cgls_verbose)
+    y = solver.cgls_solver.x
+  else
+    y .= nlp.meta.y0
+  end
   set_constraint_multipliers!(stats, y)
   # tolerance
   η = T(0.5)
