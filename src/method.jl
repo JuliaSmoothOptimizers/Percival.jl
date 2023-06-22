@@ -239,6 +239,8 @@ function reinit!(al_nlp::AugLagModel{M, T, V}, model::M, fx::T, μ::T, x::V, y::
   al_nlp
 end
 
+counter_cost(nlp) = neval_obj(nlp) + 2 * neval_grad(nlp)
+
 function SolverCore.solve!(
   solver::PercivalSolver{V},
   nlp::AbstractNLPModel{T, V},
@@ -260,8 +262,6 @@ function SolverCore.solve!(
   subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
   verbose::Integer = 0,
 ) where {T, V}
-  counter_cost(nlp) = neval_obj(nlp) + 2 * neval_grad(nlp)
-
   reset!(stats)
   @lencheck nlp.meta.nvar x
   x = solver.x .= x
