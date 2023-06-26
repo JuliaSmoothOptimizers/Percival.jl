@@ -149,6 +149,7 @@ mutable struct PercivalSolver{V, Op} <: AbstractOptimizationSolver
   cgls_solver::CglsSolver
   sub_pb::AugLagModel
   sub_solver::TronSolver
+  sub_stats::GenericExecutionStats
 end
 
 function PercivalSolver(
@@ -169,7 +170,8 @@ function PercivalSolver(
 
   sub_pb = AugLagModel(nlp, V(undef, ncon), T(0), x, T(0), V(undef, ncon))
   sub_solver = TronSolver(subproblem_modifier(sub_pb); kwargs...)
-  return PercivalSolver{V, typeof(Jx)}(x, y, gx, gL, gp, Jtv, Jx, cgls_solver, sub_pb, sub_solver)
+  sub_stats = GenericExecutionStats(sub_pb)
+  return PercivalSolver{V, typeof(Jx)}(x, y, gx, gL, gp, Jtv, Jx, cgls_solver, sub_pb, sub_solver, sub_stats)
 end
 
 # List of keywords accepted by PercivalSolver
@@ -254,7 +256,7 @@ function SolverCore.solve!(
   atol::Real = T(1e-8),
   rtol::Real = T(1e-8),
   ctol::Real = T(1e-8),
-  subsolver_logger::AbstractLogger = NullLogger(),
+  subsolver_verbose::Int= 0,
   cgls_verbose::Int = 0,
   inity::Bool = false,
   subproblem_modifier = identity,
@@ -343,19 +345,21 @@ function SolverCore.solve!(
     # solve subproblem
     model = subproblem_modifier(al_nlp)
     reset!(solver.sub_solver, model)
-    S = with_logger(subsolver_logger) do
-      solve!(
+    S = solver.sub_stats
+    reset!(S)
+    solve!(
         solver.sub_solver,
-        model;
+        model,
+        S;
         x = copy(al_nlp.x),
         cgtol = ω,
         rtol = ω,
         atol = ω,
         max_time = max_time - stats.elapsed_time,
         max_eval = min(subsolver_max_eval, rem_eval),
+        verbose = subsolver_verbose,
         subsolver_kwargs...,
       )
-    end
     inner_status = S.status
 
     normcx = norm(al_nlp.cx)
