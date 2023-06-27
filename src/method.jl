@@ -144,6 +144,7 @@ mutable struct PercivalSolver{V, Op} <: AbstractOptimizationSolver
   gx::V
   gL::V
   gp::V
+  Jv::V
   Jtv::V
   Jx::Op
   cgls_solver::CglsSolver
@@ -163,15 +164,17 @@ function PercivalSolver(
   gx = V(undef, nvar)
   gL = V(undef, nvar)
   gp = V(undef, nvar)
+
+  Jv = V(undef, ncon)
   Jtv = V(undef, nvar)
 
-  Jx = jac_op(nlp, x) # jac_op!(nlp, x, Jv, Jtv) 
+  Jx = jac_op!(nlp, x, Jv, Jtv) 
   cgls_solver = CglsSolver(Jx', gx)
 
   sub_pb = AugLagModel(nlp, V(undef, ncon), T(0), x, T(0), V(undef, ncon))
   sub_solver = TronSolver(subproblem_modifier(sub_pb); kwargs...)
   sub_stats = GenericExecutionStats(sub_pb)
-  return PercivalSolver{V, typeof(Jx)}(x, y, gx, gL, gp, Jtv, Jx, cgls_solver, sub_pb, sub_solver, sub_stats)
+  return PercivalSolver{V, typeof(Jx)}(x, y, gx, gL, gp, Jv, Jtv, Jx, cgls_solver, sub_pb, sub_solver, sub_stats)
 end
 
 # List of keywords accepted by PercivalSolver
@@ -220,6 +223,7 @@ function SolverCore.reset!(solver::PercivalSolver)
   solver
 end
 function SolverCore.reset!(solver::PercivalSolver, model::AbstractNLPModel)
+  solver.Jx = jac_op!(model, solver.x, solver.Jv, solver.Jtv) 
   solver.sub_pb.model = model
   solver.sub_pb.meta.x0 .= model.meta.x0
   solver.sub_pb.meta.lvar .= model.meta.lvar
@@ -272,7 +276,7 @@ function SolverCore.solve!(
 
   gp = solver.gp
   gp .= zero(T)
-  Jx = jac_op(nlp, x)
+  Jx = solver.Jx
   fx, gx = objgrad!(nlp, x, gx)
   set_objective!(stats, fx)
 
