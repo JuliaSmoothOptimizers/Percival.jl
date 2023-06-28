@@ -138,8 +138,9 @@ stats = solve!(solver, nlp)
 "Execution stats: first-order stationary"
 ```
 """
-mutable struct PercivalSolver{V, Op} <: AbstractOptimizationSolver
+mutable struct PercivalSolver{T, V, Op, M} <: AbstractOptimizationSolver
   x::V
+  xc::V
   y::V
   gx::V
   gL::V
@@ -147,10 +148,10 @@ mutable struct PercivalSolver{V, Op} <: AbstractOptimizationSolver
   Jv::V
   Jtv::V
   Jx::Op
-  cgls_solver::CglsSolver
-  sub_pb::AugLagModel
-  sub_solver::TronSolver
-  sub_stats::GenericExecutionStats
+  cgls_solver::CglsSolver{T, T, V}
+  sub_pb::AugLagModel{M, T, V}
+  sub_solver::TronSolver{T, V}
+  sub_stats::GenericExecutionStats{T, V}
 end
 
 function PercivalSolver(
@@ -160,6 +161,7 @@ function PercivalSolver(
 ) where {T, V}
   nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
   x = V(undef, nvar)
+  xc = V(undef, nvar)
   y = V(undef, ncon)
   gx = V(undef, nvar)
   gL = V(undef, nvar)
@@ -174,7 +176,7 @@ function PercivalSolver(
   sub_pb = AugLagModel(nlp, V(undef, ncon), T(0), x, T(0), V(undef, ncon))
   sub_solver = TronSolver(subproblem_modifier(sub_pb); kwargs...)
   sub_stats = GenericExecutionStats(sub_pb)
-  return PercivalSolver{V, typeof(Jx)}(x, y, gx, gL, gp, Jv, Jtv, Jx, cgls_solver, sub_pb, sub_solver, sub_stats)
+  return PercivalSolver{T, V, typeof(Jx), typeof(nlp)}(x, xc, y, gx, gL, gp, Jv, Jtv, Jx, cgls_solver, sub_pb, sub_solver, sub_stats)
 end
 
 # List of keywords accepted by PercivalSolver
@@ -248,7 +250,7 @@ end
 counter_cost(nlp) = neval_obj(nlp) + 2 * neval_grad(nlp)
 
 function SolverCore.solve!(
-  solver::PercivalSolver{V},
+  solver::PercivalSolver{T, V},
   nlp::AbstractNLPModel{T, V},
   stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
@@ -265,7 +267,7 @@ function SolverCore.solve!(
   inity::Bool = false,
   subproblem_modifier = identity,
   subsolver_max_eval = max_eval,
-  subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
+  subsolver_kwargs = Dict(),
   verbose::Integer = 0,
 ) where {T, V}
   reset!(stats)
@@ -355,15 +357,17 @@ function SolverCore.solve!(
         solver.sub_solver,
         model,
         S;
-        x = copy(al_nlp.x),
+        x = al_nlp.x,
         cgtol = ω,
         rtol = ω,
         atol = ω,
         max_time = max_time - stats.elapsed_time,
         max_eval = min(subsolver_max_eval, rem_eval),
         verbose = subsolver_verbose,
+        max_cgiter = nlp.meta.nvar,
         subsolver_kwargs...,
       )
+
     inner_status = S.status
 
     normcx = norm(al_nlp.cx)
