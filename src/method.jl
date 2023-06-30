@@ -150,7 +150,7 @@ mutable struct PercivalSolver{T, V, Op, M} <: AbstractOptimizationSolver
   cgls_solver::CglsSolver{T, T, V}
   sub_pb::AugLagModel{M, T, V}
   sub_solver::TronSolver{T, V}
-  sub_stats::GenericExecutionStats{T, V}
+  sub_stats::GenericExecutionStats{T, V, V, Any}
 end
 
 function PercivalSolver(
