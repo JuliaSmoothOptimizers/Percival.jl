@@ -26,7 +26,6 @@ function percival(
   rtol::Real = 1e-8,
   verbose::Integer = 0,
   subproblem_modifier = identity,
-  subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
   kwargs...,
 )
   if !(unconstrained(nlp) || bound_constrained(nlp))
@@ -44,7 +43,7 @@ function percival(
     max_iter = max_iter,
     max_time = max_time,
     verbose = verbose,
-    subsolver_kwargs...,
+    kwargs...,
   )
 end
 
@@ -92,7 +91,7 @@ For advanced usage, first define a `PercivalSolver` to preallocate the memory us
 - `subsolver_logger::AbstractLogger = NullLogger()`: logger passed to `tron`;
 - `cgls_verbose::Int = 0`: verbosity level in `Krylov.cgls`;
 - `inity::Bool = false`: If `true` the algorithm uses `Krylov.cgls` to compute an approximation, otherwise we use `nlp.meta.y0`;
-- `subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar)`: subsolver keyword arguments as a dictionary.
+other `kwargs` are passed to the subproblem solver.
 
 The algorithm stops when ``‖c(xᵏ)‖ ≤ ctol`` and ``‖P∇L(xᵏ,λᵏ)‖ ≤ atol + rtol * ‖P∇L(x⁰,λ⁰)‖`` where ``P∇L(x,λ) := Proj_{l,u}(x - ∇f(x) + ∇c(x)ᵀλ) - x``.
 
@@ -194,7 +193,6 @@ const trustregion_keys = (
   ::Val{:equ},
   nlp::AbstractNLPModel;
   subproblem_modifier = identity,
-  subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
   kwargs...,
 )
   if !(nlp.meta.minimize)
@@ -205,6 +203,7 @@ const trustregion_keys = (
       "percival(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use percival(nlp)",
     )
   end
+  subsolver_kwargs = Dict(kwargs)
   subsolver_keys = intersect(keys(subsolver_kwargs), trustregion_keys)
   solver_kwargs = Dict(k => subsolver_kwargs[k] for k in subsolver_keys)
   solver = PercivalSolver(nlp; subproblem_modifier = subproblem_modifier, solver_kwargs...)
@@ -216,8 +215,7 @@ const trustregion_keys = (
     solver,
     nlp;
     subproblem_modifier = subproblem_modifier,
-    subsolver_kwargs = sub_kwargs,
-    kwargs...,
+    sub_kwargs...,
   )
 end
 
@@ -267,8 +265,8 @@ function SolverCore.solve!(
   inity::Bool = false,
   subproblem_modifier = identity,
   subsolver_max_eval = max_eval,
-  subsolver_kwargs = Dict(),
   verbose::Integer = 0,
+  kwargs...
 ) where {T, V}
   reset!(stats)
   @lencheck nlp.meta.nvar x
@@ -365,7 +363,7 @@ function SolverCore.solve!(
         max_eval = min(subsolver_max_eval, rem_eval),
         verbose = subsolver_verbose,
         max_cgiter = nlp.meta.nvar,
-        subsolver_kwargs...,
+        kwargs...,
       )
 
     inner_status = S.status
