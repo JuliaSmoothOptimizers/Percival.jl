@@ -251,7 +251,13 @@ include("callback.jl")
       [1.0],
     )
     x = nlp.meta.x0
-    stats = percival(nlp, x = x, callback = cb, max_radius = max_radius, increase_factor = increase_factor)
+    stats = percival(
+      nlp,
+      x = x,
+      callback = cb,
+      max_radius = max_radius,
+      increase_factor = increase_factor,
+    )
 
     nls = ADNLSModel(
       x -> [100 * (x[2] - x[1]^2); x[1] - 1],
@@ -262,6 +268,12 @@ include("callback.jl")
       [1.0],
     )
     x = nls.meta.x0
-    stats = percival(nls, x = x, callback = cb, max_radius = max_radius, increase_factor = increase_factor)
+    stats = percival(
+      nls,
+      x = x,
+      callback = cb,
+      max_radius = max_radius,
+      increase_factor = increase_factor,
+    )
   end
 end

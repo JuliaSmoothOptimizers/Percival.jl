@@ -227,19 +227,14 @@ const trustregion_keys = (
   for k in subsolver_keys
     pop!(sub_kwargs, k)
   end
-  SolverCore.solve!(
-    solver,
-    nlp;
-    subproblem_modifier = subproblem_modifier,
-    sub_kwargs...,
-  )
+  SolverCore.solve!(solver, nlp; subproblem_modifier = subproblem_modifier, sub_kwargs...)
 end
 
 function SolverCore.reset!(solver::PercivalSolver)
   solver
 end
 function SolverCore.reset!(solver::PercivalSolver, model::AbstractNLPModel)
-  solver.Jx = jac_op!(model, solver.x, solver.Jv, solver.Jtv) 
+  solver.Jx = jac_op!(model, solver.x, solver.Jv, solver.Jtv)
   solver.sub_pb.model = model
   solver.sub_pb.meta.x0 .= model.meta.x0
   solver.sub_pb.meta.lvar .= model.meta.lvar
@@ -272,7 +267,10 @@ function reset_subproblem!(solver::PercivalSolver{T, V}, model::AbstractNLPModel
   reset!(solver.sub_solver, model)
 end
 
-function reset_subproblem!(solver::PercivalSolver{T, V, Op, M, ST}, model::AugLagModel{M, T, V}) where {T, V, Op, M, ST <: TronSolver{T, V}}
+function reset_subproblem!(
+  solver::PercivalSolver{T, V, Op, M, ST},
+  model::AugLagModel{M, T, V},
+) where {T, V, Op, M, ST <: TronSolver{T, V}}
   solver.sub_solver.xc .= model.x
   reset!(solver.sub_solver)
 end
@@ -290,13 +288,13 @@ function SolverCore.solve!(
   atol::Real = T(1e-8),
   rtol::Real = T(1e-8),
   ctol::Real = T(1e-8),
-  subsolver_verbose::Int= 0,
+  subsolver_verbose::Int = 0,
   cgls_verbose::Int = 0,
   inity::Bool = false,
   subproblem_modifier = identity,
   subsolver_max_eval = max_eval,
   verbose::Integer = 0,
-  kwargs...
+  kwargs...,
 ) where {T, V}
   reset!(stats)
   @lencheck nlp.meta.nvar x
@@ -382,19 +380,19 @@ function SolverCore.solve!(
     S = solver.sub_stats
     reset!(S)
     solve!(
-        solver.sub_solver,
-        model,
-        S;
-        x = al_nlp.x,
-        cgtol = ω,
-        rtol = ω,
-        atol = ω,
-        max_time = max_time - stats.elapsed_time,
-        max_eval = min(subsolver_max_eval, rem_eval),
-        verbose = subsolver_verbose,
-        max_cgiter = nlp.meta.nvar,
-        kwargs...,
-      )
+      solver.sub_solver,
+      model,
+      S;
+      x = al_nlp.x,
+      cgtol = ω,
+      rtol = ω,
+      atol = ω,
+      max_time = max_time - stats.elapsed_time,
+      max_eval = min(subsolver_max_eval, rem_eval),
+      verbose = subsolver_verbose,
+      max_cgiter = nlp.meta.nvar,
+      kwargs...,
+    )
 
     inner_status = S.status
 
