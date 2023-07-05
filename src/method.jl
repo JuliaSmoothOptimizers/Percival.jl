@@ -272,9 +272,9 @@ function reset_subproblem!(solver::PercivalSolver{T, V}, model::AbstractNLPModel
   reset!(solver.sub_solver, model)
 end
 
-function reset_subproblem!(solver::PercivalSolver{T, V, Op, M, ST}, model::AbstractNLPModel{T, V}) where {T, V, Op, M, ST <: TronSolver{T, V}}
-  # reset!(solver.sub_solver, model) # allocate for TRON
-  solver.sub_solver.tr.good_grad = false
+function reset_subproblem!(solver::PercivalSolver{T, V, Op, M, ST}, model::AugLagModel{M, T, V}) where {T, V, Op, M, ST <: TronSolver{T, V}}
+  solver.sub_solver.xc .= model.x
+  reset!(solver.sub_solver)
 end
 
 function SolverCore.solve!(
