@@ -137,7 +137,7 @@ stats = solve!(solver, nlp)
 "Execution stats: first-order stationary"
 ```
 """
-mutable struct PercivalSolver{T, V, Op, M} <: AbstractOptimizationSolver
+mutable struct PercivalSolver{T, V, Op, M, ST} <: AbstractOptimizationSolver
   x::V
   xc::V
   y::V
@@ -149,7 +149,7 @@ mutable struct PercivalSolver{T, V, Op, M} <: AbstractOptimizationSolver
   Jx::Op
   cgls_solver::CglsSolver{T, T, V}
   sub_pb::AugLagModel{M, T, V}
-  sub_solver::TronSolver{T, V}
+  sub_solver::ST
   sub_stats::GenericExecutionStats{T, V, V, Any}
 end
 
@@ -169,13 +169,29 @@ function PercivalSolver(
   Jv = V(undef, ncon)
   Jtv = V(undef, nvar)
 
-  Jx = jac_op!(nlp, x, Jv, Jtv) 
+  Jx = jac_op!(nlp, x, Jv, Jtv)
+  Op = typeof(Jx)
   cgls_solver = CglsSolver(Jx', gx)
 
   sub_pb = AugLagModel(nlp, V(undef, ncon), T(0), x, T(0), V(undef, ncon))
   sub_solver = TronSolver(subproblem_modifier(sub_pb); kwargs...)
+  ST = typeof(sub_solver)
   sub_stats = GenericExecutionStats(sub_pb)
-  return PercivalSolver{T, V, typeof(Jx), typeof(nlp)}(x, xc, y, gx, gL, gp, Jv, Jtv, Jx, cgls_solver, sub_pb, sub_solver, sub_stats)
+  return PercivalSolver{T, V, Op, typeof(nlp), ST}(
+    x,
+    xc,
+    y,
+    gx,
+    gL,
+    gp,
+    Jv,
+    Jtv,
+    Jx,
+    cgls_solver,
+    sub_pb,
+    sub_solver,
+    sub_stats,
+  )
 end
 
 # List of keywords accepted by PercivalSolver
@@ -246,6 +262,20 @@ function reinit!(al_nlp::AugLagModel{M, T, V}, model::M, fx::T, μ::T, x::V, y::
 end
 
 counter_cost(nlp) = neval_obj(nlp) + 2 * neval_grad(nlp)
+
+"""
+    reset_subproblem!(solver::PercivalSolver{T, V}, model::AbstractNLPModel{T, V})
+
+Specialize `SolverCore.reset!` function to percival's context.
+"""
+function reset_subproblem!(solver::PercivalSolver{T, V}, model::AbstractNLPModel{T, V}) where {T, V}
+  reset!(solver.sub_solver, model)
+end
+
+function reset_subproblem!(solver::PercivalSolver{T, V, Op, M, ST}, model::AugLagModel{M, T, V}) where {T, V, Op, M, ST <: TronSolver{T, V}}
+  solver.sub_solver.xc .= model.x
+  reset!(solver.sub_solver)
+end
 
 function SolverCore.solve!(
   solver::PercivalSolver{T, V},
@@ -348,7 +378,7 @@ function SolverCore.solve!(
   while !done
     # solve subproblem
     model = subproblem_modifier(al_nlp)
-    reset!(solver.sub_solver, model)
+    reset_subproblem!(solver, model)
     S = solver.sub_stats
     reset!(S)
     solve!(
