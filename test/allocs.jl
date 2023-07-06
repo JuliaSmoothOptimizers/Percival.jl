@@ -48,22 +48,25 @@ if v"1.7" <= VERSION
     end
   end
 
-  @testset "Allocation tests $(model)" for model in setdiff(NLPModelsTest.nlp_problems, ["HS10", "HS13", "LINCON", "LINSV"])
-      nlp = eval(Meta.parse(model))()
+  @testset "Allocation tests $(model)" for model in setdiff(
+    NLPModelsTest.nlp_problems,
+    ["HS10", "HS13", "LINCON", "LINSV"],
+  )
+    nlp = eval(Meta.parse(model))()
 
-      nlp.meta.ncon > 0 || continue
+    nlp.meta.ncon > 0 || continue
 
-      if !equality_constrained(nlp)
-        nlp = SlackModel(nlp)
-      end
-
-      solver = PercivalSolver(nlp)
-      x = copy(nlp.meta.x0)
-      stats = GenericExecutionStats(nlp)
-      SolverCore.solve!(solver, nlp, stats)
-      reset!(solver)
-      reset!(nlp)
-      al = @wrappedallocs SolverCore.solve!(solver, nlp, stats)
-      @test al == 0
+    if !equality_constrained(nlp)
+      nlp = SlackModel(nlp)
     end
+
+    solver = PercivalSolver(nlp)
+    x = copy(nlp.meta.x0)
+    stats = GenericExecutionStats(nlp)
+    SolverCore.solve!(solver, nlp, stats)
+    reset!(solver)
+    reset!(nlp)
+    al = @wrappedallocs SolverCore.solve!(solver, nlp, stats)
+    @test al == 0
+  end
 end
