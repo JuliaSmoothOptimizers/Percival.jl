@@ -38,6 +38,7 @@ mutable struct AugLagModel{M <: AbstractNLPModel, T <: AbstractFloat, V <: Abstr
   x::V # save last iteration of subsolver
   fx::T # save last objective value of subsolver
   cx::V # save last constraint value of subsolver
+  Fx::V
   μc_y::V # y - μ * cx
   store_Jv::Vector{T}
   store_Jtv::Vector{T}
@@ -57,6 +58,8 @@ function AugLagModel(model::AbstractNLPModel{T, V}, y::V, μ::T, x::V, fx::T, cx
     name = "AugLagModel-$(model.meta.name)",
   )
 
+  Fx = model isa AbstractNLSModel ? V(undef, model.nls_meta.nequ) : V(undef, 0)
+
   return AugLagModel(
     meta,
     Counters(),
@@ -66,6 +69,7 @@ function AugLagModel(model::AbstractNLPModel{T, V}, y::V, μ::T, x::V, fx::T, cx
     x,
     fx,
     cx,
+    Fx,
     y - μ * cx,
     zeros(T, ncon),
     zeros(T, nvar),
@@ -107,6 +111,19 @@ function update_fxcx!(nlp::AugLagModel, x::AbstractVector)
   end
 end
 
+function update_fxcx!(nlp::AugLagModel{M}, x::AbstractVector) where {M <: AbstractNLSModel}
+  @lencheck nlp.meta.nvar x
+  if x != nlp.x
+    nlp.fx = obj(nlp.model, x, nlp.Fx) # use objcons!
+    cons!(nlp.model, x, nlp.cx)
+    nlp.cx .-= nlp.model.meta.lcon
+    nlp.x .= x
+    nlp.μc_y .= nlp.μ .* nlp.cx .- nlp.y
+  elseif isnan(nlp.fx)
+    nlp.fx = obj(nlp.model, x, nlp.Fx)
+  end
+end
+
 """
     update_y!(nlp)
 
@@ -144,6 +161,16 @@ function NLPModels.grad!(nlp::AugLagModel, x::AbstractVector, g::AbstractVector)
   return g
 end
 
+function NLPModels.grad!(nlp::AugLagModel{M}, x::AbstractVector, g::AbstractVector) where {M <: AbstractNLSModel}
+  @lencheck nlp.meta.nvar x
+  @lencheck nlp.meta.nvar g
+  increment!(nlp, :neval_grad)
+  update_cx!(nlp, x)
+  grad!(nlp.model, x, g, nlp.Fx)
+  g .+= jtprod!(nlp.model, x, nlp.μc_y, nlp.store_Jtv)
+  return g
+end
+
 function NLPModels.objgrad!(nlp::AugLagModel, x::AbstractVector, g::AbstractVector)
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.nvar g
@@ -152,6 +179,18 @@ function NLPModels.objgrad!(nlp::AugLagModel, x::AbstractVector, g::AbstractVect
   update_fxcx!(nlp, x)
   f = nlp.fx - dot(nlp.y, nlp.cx) + (nlp.μ / 2) * dot(nlp.cx, nlp.cx)
   grad!(nlp.model, x, g)
+  g .+= jtprod!(nlp.model, x, nlp.μc_y, nlp.store_Jtv)
+  return f, g
+end
+
+function NLPModels.objgrad!(nlp::AugLagModel{M}, x::AbstractVector, g::AbstractVector) where {M <: AbstractNLSModel}
+  @lencheck nlp.meta.nvar x
+  @lencheck nlp.meta.nvar g
+  increment!(nlp, :neval_obj)
+  increment!(nlp, :neval_grad)
+  update_fxcx!(nlp, x)
+  f = nlp.fx - dot(nlp.y, nlp.cx) + (nlp.μ / 2) * dot(nlp.cx, nlp.cx)
+  grad!(nlp.model, x, g, nlp.Fx, recompute = false)
   g .+= jtprod!(nlp.model, x, nlp.μc_y, nlp.store_Jtv)
   return f, g
 end
