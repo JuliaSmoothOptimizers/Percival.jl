@@ -49,7 +49,7 @@ if v"1.7" <= VERSION
       end
     end
 
-    @testset "Allocation tests $(model)" for model in setdiff(NLPModelsTest.nlp_problems, [""]) # "HS10", "HS13", "LINCON"
+    @testset "Allocation tests $(model)" for model in NLPModelsTest.nlp_problems
       nlp = eval(Meta.parse(model))()
 
       nlp.meta.ncon > 0 || continue
