@@ -29,26 +29,27 @@ macro wrappedallocs(expr)
 end
 
 if v"1.7" <= VERSION
-  @testset "Test 0-allocations of NLPModel API for AugLagModel" begin
-    list_of_problems = NLPModelsTest.nlp_problems
+  @testset "Allocation tests" begin
+    @testset "Test 0-allocations of NLPModel API for AugLagModel" begin
+      list_of_problems = NLPModelsTest.nlp_problems
 
-    T = Float64
-    for problem in list_of_problems
-      nlp = eval(Symbol(problem))(T)
-      if nlp.meta.ncon > 0
-        μ = one(T)
-        x = nlp.meta.x0
-        fx = obj(nlp, x)
-        y = nlp.meta.y0
-        cx = similar(y)
-        model = Percival.AugLagModel(nlp, y, μ, x, fx, cx)
+      T = Float64
+      for problem in list_of_problems
+        nlp = eval(Symbol(problem))(T)
+        if nlp.meta.ncon > 0
+          μ = one(T)
+          x = nlp.meta.x0
+          fx = obj(nlp, x)
+          y = nlp.meta.y0
+          cx = similar(y)
+          model = Percival.AugLagModel(nlp, y, μ, x, fx, cx)
 
-        test_zero_allocations(model, exclude = [hess])
+          test_zero_allocations(model, exclude = [hess])
+        end
       end
     end
-  end
 
-  @testset "Allocation tests $(model)" for model in setdiff(NLPModelsTest.nlp_problems, ["HS10", "HS13", "LINCON", "LINSV"])
+    @testset "Allocation tests $(model)" for model in NLPModelsTest.nlp_problems
       nlp = eval(Meta.parse(model))()
 
       nlp.meta.ncon > 0 || continue
@@ -66,4 +67,5 @@ if v"1.7" <= VERSION
       al = @wrappedallocs SolverCore.solve!(solver, nlp, stats)
       @test al == 0
     end
+  end
 end
