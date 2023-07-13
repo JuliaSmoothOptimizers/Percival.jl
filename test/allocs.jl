@@ -49,13 +49,13 @@ if v"1.7" <= VERSION
       end
     end
 
-    @testset "Allocation tests $(model)" for model in NLPModelsTest.nlp_problems
+    @testset "Allocation tests $(model)" for model in union(NLPModelsTest.nls_problems, NLPModelsTest.nlp_problems)
       nlp = eval(Meta.parse(model))()
 
       nlp.meta.ncon > 0 || continue
 
       if !equality_constrained(nlp)
-        nlp = SlackModel(nlp)
+        nlp = nlp isa AbstractNLSModel ? SlackNLSModel(nlp) : SlackModel(nlp)
       end
 
       solver = PercivalSolver(nlp)

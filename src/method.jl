@@ -53,7 +53,7 @@ function percival(::Val{:ineq}, nlp::AbstractNLPModel; x::V = nlp.meta.x0, kwarg
       "percival(::Val{:ineq}, nlp) should only be called for problems with inequalities. Use percival(nlp)",
     )
   end
-  snlp = SlackModel(nlp)
+  snlp = nlp isa AbstractNLSModel ? SlackNLSModel(nlp) : SlackModel(nlp)
   if length(x) != snlp.meta.nvar
     x0 = fill!(V(undef, snlp.meta.nvar), zero(eltype(V)))
     x0[1:(nlp.meta.nvar)] .= x
@@ -174,7 +174,12 @@ function PercivalSolver(
   cgls_solver = CglsSolver(Jx', gx)
 
   sub_pb = AugLagModel(nlp, V(undef, ncon), T(0), x, T(0), V(undef, ncon))
-  sub_solver = TronSolver(subproblem_modifier(sub_pb); kwargs...)
+  model = subproblem_modifier(sub_pb)
+  sub_solver = if typeof(model) <: AbstractNLSModel
+    TronNLSSolver(model; kwargs...)
+  else
+    TronSolver(model; kwargs...)
+  end
   ST = typeof(sub_solver)
   sub_stats = GenericExecutionStats(sub_pb)
   return PercivalSolver{T, V, Op, typeof(nlp), ST}(
@@ -302,10 +307,16 @@ function SolverCore.solve!(
   gx = solver.gx
   x .= max.(nlp.meta.lvar, min.(x, nlp.meta.uvar))
 
+  al_nlp = solver.sub_pb
+
   gp = solver.gp
   gp .= zero(T)
   Jx = solver.Jx
-  fx, gx = objgrad!(nlp, x, gx)
+  fx, gx = if nlp isa AbstractNLSModel
+    objgrad!(nlp, x, gx, solver.sub_pb.Fx)
+  else
+    objgrad!(nlp, x, gx)
+  end
   set_objective!(stats, fx)
 
   # Lagrange multiplier
@@ -322,7 +333,6 @@ function SolverCore.solve!(
   ω = T(1.0)
 
   # create initial subproblem
-  al_nlp = solver.sub_pb
   reinit!(al_nlp, nlp, fx, μ, x, y)
 
   # stationarity measure
@@ -414,7 +424,11 @@ function SolverCore.solve!(
     end
 
     # stationarity measure
-    grad!(nlp, al_nlp.x, gx)
+    if nlp isa AbstractNLSModel
+      grad!(nlp, al_nlp.x, gx, al_nlp.Fx)
+    else
+      grad!(nlp, al_nlp.x, gx)
+    end
     jtprod!(nlp, al_nlp.x, al_nlp.y, solver.Jtv)
     gL .= gx .- solver.Jtv
     gL .*= -1
