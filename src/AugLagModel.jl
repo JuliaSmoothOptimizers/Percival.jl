@@ -161,7 +161,11 @@ function NLPModels.grad!(nlp::AugLagModel, x::AbstractVector, g::AbstractVector)
   return g
 end
 
-function NLPModels.grad!(nlp::AugLagModel{M}, x::AbstractVector, g::AbstractVector) where {M <: AbstractNLSModel}
+function NLPModels.grad!(
+  nlp::AugLagModel{M},
+  x::AbstractVector,
+  g::AbstractVector,
+) where {M <: AbstractNLSModel}
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.nvar g
   increment!(nlp, :neval_grad)
@@ -183,7 +187,11 @@ function NLPModels.objgrad!(nlp::AugLagModel, x::AbstractVector, g::AbstractVect
   return f, g
 end
 
-function NLPModels.objgrad!(nlp::AugLagModel{M}, x::AbstractVector, g::AbstractVector) where {M <: AbstractNLSModel}
+function NLPModels.objgrad!(
+  nlp::AugLagModel{M},
+  x::AbstractVector,
+  g::AbstractVector,
+) where {M <: AbstractNLSModel}
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.nvar g
   increment!(nlp, :neval_obj)
