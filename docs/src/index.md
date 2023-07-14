@@ -1,4 +1,4 @@
-# Percival.jl
+ # Percival.jl
 
 _an Augmented Lagrangian method_
 
@@ -20,7 +20,7 @@ It was implemented as part of the Master's dissertation of Egmara Antunes.
 
 The `percival` method expects a single mandatory argument - an [AbstractNLPModel](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) - and returns a GenericExecutionStats from [SolverCore.jl](https://github.com/JuliaSmoothOptimizers/SolverCore.jl).
 
-We refer to [juliasmoothoptimizers.github.io](https://juliasmoothoptimizers.github.io) for tutorials on the NLPModel API. 
+We refer to [jso.dev](https://jso.dev/) for tutorials on the NLPModel API. 
 The functions used to access the NLPModel in general, are defined in `NLPModels.jl`. So, for instance, you can access the objective function's documentation as follows
 ```julia
 using NLPModels
@@ -62,6 +62,9 @@ nlp = ADNLPModel(
 output = percival(nlp)
 print(output)
 ```
+
+You can find more tutorials on 
+https://jso.dev/tutorials/ and select the tag `Percival.jl`.
 
 # Bug reports and discussions
 
