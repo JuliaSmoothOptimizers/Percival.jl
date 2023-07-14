@@ -1,4 +1,4 @@
- # Percival.jl
+# Percival.jl
 
 _an Augmented Lagrangian method_
 
