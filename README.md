@@ -39,12 +39,13 @@ $$
 You can solve an JuMP model `model` by using [NLPModelsJuMP.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsJuMP.jl) to convert it.
 ```julia
 using JuMP, NLPModelsJuMP, Percival
-model = Model()
+model = Model(NLPModelsJuMP.Optimizer)
+set_attribute(model, "solver", Percival.PercivalSolver)
 @variable(model, x[i=1:2], start = [-1.2; 1.0][i])
-@NLobjective(model, Min, (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2)
-@NLconstraint(model, x[1]^2 + x[2]^2 == 1)
-nlp = MathOptNLPModel(model) # thin wrapper converting JuMP Model as NLPModel
-output = percival(nlp, verbose = 1)
+@objective(model, Min, (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2)
+@constraint(model, x[1]^2 + x[2]^2 == 1)
+optimize!(model)
+solution_summary(model)
 ```
 
 `percival` accept as input any instance of `AbstractNLPModel`, for instance, using automatic differentiation via [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl) to solve the same problem.
