@@ -17,7 +17,7 @@ To use Percival, you have to pass it an [NLPModel](https://github.com/JuliaSmoot
 
 ## How to Cite
 
-If you use Percival.jl in your work, please cite using the format given in [CITATION.bib](https://github.com/JuliaSmoothOptimizers/Percival.jl/blob/main/CITATION.bib).
+If you use Percival.jl in your work, please cite using the format given in [CITATION.cff](https://github.com/JuliaSmoothOptimizers/Percival.jl/blob/main/CITATION.cff).
 
 ## Install
 
