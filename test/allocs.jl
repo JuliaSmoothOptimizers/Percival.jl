@@ -62,7 +62,6 @@ if v"1.7" <= VERSION
       end
 
       solver = PercivalSolver(nlp)
-      x = copy(nlp.meta.x0)
       stats = GenericExecutionStats(nlp)
       SolverCore.solve!(solver, nlp, stats)
       reset!(solver)
