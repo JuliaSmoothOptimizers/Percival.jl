@@ -89,33 +89,38 @@ Algencan [@Algencan] is a Fortran implementation of a matrix-free Augmented Lagr
 
 Pure Julia alternatives to interior-point and augmented Lagrangian methods include `DCISolver.jl` [@dcisolver] that relies on a dynamic control of infeasibility or `FletcherPenaltySolver.jl` [@fletcherpenaltysolver] that implements Fletcher's penalty method for nonlinear optimization models. However, both methods are currently limited to equality constrained problems.
 
-## Support for NVIDIA, AMD and Intel GPUs
-
-The implementations in Krylov.jl are generic so as to take advantage of
-the multiple dispatch and broadcast features of Julia. Those allow the implementations to be
-specialized automatically by the compiler for both CPU and GPU. Thus, Krylov.jl works with
-GPU backends that build on GPUArrays.jl, including CUDA.jl, AMDGPU.jl, and oneAPI.jl, the
-Julia interfaces to NVIDIA, AMD, and Intel GPUs.
-
 ## Support for any floating-point system supported by Julia
 
-Yes!
+```
+using NLPModelsTest
+nlp = HS6(Float32)
+using Percival
+stats = percival(nlp) # not tested in the package and doesn't work
+```
 
 ## In-place methods
 
-All solvers in Krylov.jl have an in-place variant that allows to solve multiple linear systems with
-the same dimensions, precision and architecture. Optimization methods such as the Newton
-and Gauss-Newton methods can take advantage of this functionality by allocating workspace
-for the solve only once. The in-place variants only require a Julia structure that contains all the
-storage needed by a Krylov method as additional argument. In-place methods limit memory
+The main function `percival` has an in-place variant that allows to solve multiple optimization problems with
+the same dimensions, precision and architecture. More complex solvers can take advantage of this functionality by allocating workspace for the solve only once. The in-place variants only require a Julia structure that contains all the storage needed by `percival` as additional argument. In-place methods limit memory
 allocations and deallocations, which are particularly expensive on GPUs.
+
+```
+using NLPModels, NLPModelsTest
+nlp = HS6() # test problem from NLPModelsTest whose evaluations are allocation free
+using SolverCore
+stats = GenericExecutionStats(nlp) # pre-allocate output structure
+using Percival
+solver = PercivalSolver(nlp) # pre-allocate workspace
+SolverCore.solve!(solver, nlp, stats) # call percival
+Percival.reset!(solver)
+NLPModels.reset!(nlp)
+@allocated SolverCore.solve!(solver, nlp, stats) == 0
+```
 
 ## Numerics
 
 `Percival.jl` can solve large-scale problems and can be benchmarked easily against other JSO-compliant solvers using `SolverBenchmark.jl` [@orban-siqueira-solverbenchmark-2020].
-We include below performance profiles [@dolan2002benchmarking] of `Percival.jl` against Ipopt on 82 problems from CUTEst [@cutest] with up to 10,000 variables and 10,000 constraints. 
-
-The package's documentation includes more extensive benchmarks on classical test sets showing that `Percival.jl` is also competitive with Artelys Knitro.
+We include below performance profiles [@dolan2002benchmarking] of `Percival.jl` against Ipopt on 96 problems from CUTEst [@cutest] with up to 100 variables and 100 constraints. 
 
 <!--
 illustrating that `Percival` is a fast and stable alternative to a state of the art solver
@@ -123,12 +128,14 @@ illustrating that `Percival` is a fast and stable alternative to a state of the 
 NOTE: Putting the code is too long
 ```
 include("make_problems_list.jl") # setup a file `list_problems.dat` with problem names
-include("benchmark.jl") # run the benchmark and store the result in `ipopt_dcildl_82.jld2`
+include("benchmark.jl") # run the benchmark and store the result in `ipopt_percival_82.jld2`
 include("figures.jl") # make the figure
 ```
 -->
 
-![](ipopt_dcildl_82.png){ width=100% }
+![](ipopt_percival_96.png){ width=100% }
+
+https://jso.dev/Percival.jl/dev/benchmark/#Benchmarks
 
 # Acknowledgements
 
