@@ -88,6 +88,11 @@ For advanced usage, first define a `PercivalSolver` to preallocate the memory us
 - `max_iter::Int = 2000`: maximum number of iterations;
 - `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
 - `μ::Real = T(10.0)`: Starting value of the penalty parameter;
+- `η₀::T = T(0.5)`: Starting value for the contraints tolerance of the subproblem;
+- `ω₀::T = T(1)`: Starting value for relative tolerance of the subproblem;
+- `α₁::T = T(9 // 10)`: ``η = max(1 / al_nlp.μ^α₁, ϵp)`` if ``‖c(xᵏ)‖ ≤ η``;
+- `β₁::T = T(1 // 10)`: ``η = max(1 / al_nlp.μ^β₁, ϵp)`` if ``‖c(xᵏ)‖ > η``;
+- `μ_up::T = T(10)`: Multiplicative factor of `μ` if not ``‖c(xᵏ)‖ > η``;
 - `subsolver_logger::AbstractLogger = NullLogger()`: logger passed to `tron`;
 - `cgls_verbose::Int = 0`: verbosity level in `Krylov.cgls`;
 - `inity::Bool = false`: If `true` the algorithm uses `Krylov.cgls` to compute an approximation, otherwise we use `nlp.meta.y0`;
@@ -286,7 +291,12 @@ function SolverCore.solve!(
   stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
   x::V = nlp.meta.x0,
-  μ::Real = T(10.0),
+  μ::Real = T(10),
+  η₀::T = T(1 // 2),
+  ω₀::T = T(1),
+  α₁::T = T(9 // 10),
+  β₁::T = T(1 // 10),
+  μ_up::T = T(10),
   max_iter::Int = 2000,
   max_time::Real = 30.0,
   max_eval::Int = 200000,
@@ -328,9 +338,6 @@ function SolverCore.solve!(
     y .= nlp.meta.y0
   end
   set_constraint_multipliers!(stats, y)
-  # tolerance
-  η = T(0.5)
-  ω = T(1.0)
 
   # create initial subproblem
   reinit!(al_nlp, nlp, fx, μ, x, y)
@@ -348,6 +355,9 @@ function SolverCore.solve!(
   # tolerance for optimal measure
   ϵd = atol + rtol * normgp
   ϵp = ctol
+  # tolerance
+  η = max(η₀, ϵp)
+  ω = ω₀
 
   set_iter!(stats, 0)
   start_time = time()
@@ -412,13 +422,13 @@ function SolverCore.solve!(
 
     iter_type = if normcx <= η
       update_y!(al_nlp)
-      η = max(η / al_nlp.μ^T(0.9), ϵp)
+      η = max(η / al_nlp.μ^α₁, ϵp)
       ω /= al_nlp.μ
       set_constraint_multipliers!(stats, al_nlp.y)
       :update_y
     else
-      update_μ!(al_nlp, 10 * al_nlp.μ)
-      η = max(1 / al_nlp.μ^T(0.1), ϵp)
+      update_μ!(al_nlp, μ_up * al_nlp.μ)
+      η = max(1 / al_nlp.μ^β₁, ϵp)
       ω = 1 / al_nlp.μ
       :update_μ
     end
