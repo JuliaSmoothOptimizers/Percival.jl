@@ -75,6 +75,10 @@ For advanced usage, first define a `PercivalSolver` to preallocate the memory us
     solver = PercivalSolver(nlp)
     solve!(solver, nlp)
 
+    stats = GenericExecutionStats(nlp)
+    solver = PercivalSolver(nlp)
+    solve!(solver, nlp, stats)
+
 # Arguments
 - `nlp::AbstractNLPModel{T, V}` is the model to solve, see `NLPModels.jl`.
 
@@ -132,10 +136,11 @@ stats = percival(nlp)
 "Execution stats: first-order stationary"
 ```
 ```jldoctest
-using Percival, ADNLPModels
+using Percival, ADNLPModels, SolverCore
 nlp = ADNLPModel(x -> sum(x.^2), ones(3), x -> [x[1]], zeros(1), zeros(1))
+stats = GenericExecutionStats(nlp)
 solver = PercivalSolver(nlp)
-stats = solve!(solver, nlp)
+stats = solve!(solver, nlp, stats)
 
 # output
 
