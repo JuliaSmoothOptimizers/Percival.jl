@@ -1,3 +1,4 @@
+# doesn't work because of quadratic constraints
 using Pkg; Pkg.activate("")
 Pkg.add(url="https://github.com/MadNLP/COPSBenchmark.jl")
 Pkg.add(url="https://github.com/JuliaSmoothOptimizers/SolverBenchmark.jl")
