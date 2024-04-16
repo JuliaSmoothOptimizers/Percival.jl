@@ -70,7 +70,7 @@ function AugLagModel(model::AbstractNLPModel{T, V}, y::V, μ::T, x::V, fx::T, cx
     fx,
     cx,
     Fx,
-    y - μ * cx,
+    isassigned(y) && isassigned(cx) ? y - μ * cx : similar(y),
     zeros(T, ncon),
     zeros(T, nvar),
   )
