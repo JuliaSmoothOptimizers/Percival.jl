@@ -86,7 +86,7 @@ For advanced usage, first define a `PercivalSolver` to preallocate the memory us
 - `x::V = nlp.meta.x0`: the initial guess;
 - `atol::T = T(1e-8)`: absolute tolerance;
 - `rtol::T = T(1e-8)`: relative tolerance;
-- `ctol::T = T(1e-8)`: absolute tolerance on the feasibility;
+- `ctol::T = atol > 0 ? atol : rtol`: absolute tolerance on the feasibility;
 - `max_eval::Int = 100000`: maximum number of evaluation of the objective function;
 - `max_time::Float64 = 30.0`: maximum time limit in seconds;
 - `max_iter::Int = 2000`: maximum number of iterations;
@@ -307,7 +307,7 @@ function SolverCore.solve!(
   max_eval::Int = 200000,
   atol::Real = T(1e-8),
   rtol::Real = T(1e-8),
-  ctol::Real = T(1e-8),
+  ctol::Real = atol > 0 ? atol : rtol,
   subsolver_verbose::Int = 0,
   cgls_verbose::Int = 0,
   inity::Bool = false,
