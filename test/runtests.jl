@@ -9,6 +9,7 @@ mutable struct DummyModel{T, S} <: AbstractNLPModel{T, S}
 end
 
 include("allocs.jl")
+include("solvertest.jl")
 
 function test()
   nlp = DummyModel(NLPModelMeta(1, minimize = false))
@@ -18,12 +19,6 @@ function test()
   )
 
   lbfgs_mem = 4
-  @testset "Unconstrained tests" begin
-    unconstrained_nlp(percival)
-  end
-  @testset "Bound-constrained tests" begin
-    bound_constrained_nlp(percival)
-  end
 
   @testset "Small equality constrained problems $name" for (x0, m, f, c, sol, name) in [
     (
