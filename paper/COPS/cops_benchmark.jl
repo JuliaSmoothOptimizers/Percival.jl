@@ -1,7 +1,5 @@
-# doesn't work because of quadratic constraints
 using Pkg; Pkg.activate("")
 Pkg.add(url="https://github.com/MadNLP/COPSBenchmark.jl")
-Pkg.add(url="https://github.com/JuliaSmoothOptimizers/SolverBenchmark.jl")
 using COPSBenchmark, JuMP
 using NLPModels, NLPModelsJuMP, NLPModelsIpopt, Percival, SolverBenchmark
 
@@ -38,11 +36,19 @@ COPS_INSTANCES = [
     (COPSBenchmark.triangle_turtle_model, (), 4.21523e3, "triangle_turtle"),
 ]
 
-cops_problems = (MathOptNLPModel(instance(params...), name = name) for (instance, params, result, name) in COPS_INSTANCES)
+cops_problems = [MathOptNLPModel(instance(params...), name = name) for (instance, params, result, name) in COPS_INSTANCES]
 
 max_time = 120.0 #2 minutes
 tol = 1e-5
-μ = 10.0
+
+# Percival's parameters
+μ = 10.0 # default: 10
+μ_up = 10 # default: 10
+inity = true # default: false
+η₀ = 1 // 2 # default: 0.5 Starting value for the contraints tolerance of the subproblem
+ω₀ = 1  # default: 1 Starting value for relative tolerance of the subproblem;
+α₁ = 9 // 10  # default: 0.9 ``η = max(1 / al_nlp.μ^α₁, ϵp)`` if ``‖c(xᵏ)‖ ≤ η``;
+β₁ = 1 // 10 # default: 0.1 ``η = max(1 / al_nlp.μ^β₁, ϵp)`` if ``‖c(xᵏ)‖ > η``;
 
 solvers = Dict(
   :ipopt => nlp -> ipopt(
@@ -64,6 +70,9 @@ solvers = Dict(
       ctol = tol,
       rtol = tol,
       μ = μ,
+      inity = inity,
+      subsolver_verbose = 1,
+      verbose = 1,
   ),
 )
 
