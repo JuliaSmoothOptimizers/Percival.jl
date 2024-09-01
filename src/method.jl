@@ -313,6 +313,7 @@ function SolverCore.solve!(
   inity::Bool = false,
   subproblem_modifier = identity,
   subsolver_max_eval = max_eval,
+  subsolver_max_cgiter = nlp.meta.nvar,
   verbose::Integer = 0,
   kwargs...,
 ) where {T, V}
@@ -415,7 +416,7 @@ function SolverCore.solve!(
       max_time = max_time - stats.elapsed_time,
       max_eval = min(subsolver_max_eval, rem_eval),
       verbose = subsolver_verbose,
-      max_cgiter = nlp.meta.nvar,
+      max_cgiter = subsolver_max_cgiter,
       kwargs...,
     )
 
