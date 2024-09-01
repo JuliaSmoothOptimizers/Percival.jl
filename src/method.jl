@@ -98,6 +98,8 @@ For advanced usage, first define a `PercivalSolver` to preallocate the memory us
 - `β₁::T = T(1 // 10)`: ``η = max(1 / al_nlp.μ^β₁, ϵp)`` if ``‖c(xᵏ)‖ > η``;
 - `μ_up::T = T(10)`: Multiplicative factor of `μ` if not ``‖c(xᵏ)‖ > η``;
 - `subsolver_logger::AbstractLogger = NullLogger()`: logger passed to `tron`;
+- `subsolver_max_iter = typemax(Int)`: maximum number of iterations for the subsolver;
+- `subsolver_max_cgiter = nlp.meta.nvar`: subproblem's iteration limit for the subsolver;
 - `cgls_verbose::Int = 0`: verbosity level in `Krylov.cgls`;
 - `inity::Bool = false`: If `true` the algorithm uses `Krylov.cgls` to compute an approximation, otherwise we use `nlp.meta.y0`;
 other `kwargs` are passed to the subproblem solver.
@@ -313,6 +315,7 @@ function SolverCore.solve!(
   inity::Bool = false,
   subproblem_modifier = identity,
   subsolver_max_eval = max_eval,
+  subsolver_max_iter = typemax(Int),
   subsolver_max_cgiter = nlp.meta.nvar,
   verbose::Integer = 0,
   kwargs...,
@@ -415,6 +418,7 @@ function SolverCore.solve!(
       atol = ω,
       max_time = max_time - stats.elapsed_time,
       max_eval = min(subsolver_max_eval, rem_eval),
+      max_iter = subsolver_max_iter,
       verbose = subsolver_verbose,
       max_cgiter = subsolver_max_cgiter,
       kwargs...,
