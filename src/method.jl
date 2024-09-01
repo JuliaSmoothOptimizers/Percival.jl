@@ -96,8 +96,8 @@ For advanced usage, first define a `PercivalSolver` to preallocate the memory us
 - `ω₀::T = T(1)`: Starting value for relative tolerance of the subproblem;
 - `ω_min::T = atol`: Smallest value for relative tolerance of the subproblem;
 - `α₁::T = T(9 // 10)`: ``η = max(η / al_nlp.μ^α₁, ϵp)`` if ``‖c(xᵏ)‖ ≤ η``;
-- `β₀::T = T(1)`: ``η = max(β₀ / al_nlp.μ^β₁, ϵp)`` if ``‖c(xᵏ)‖ > η``;
-- `β₁::T = T(1 // 10)`: ``η = max(1 / al_nlp.μ^β₁, ϵp)`` if ``‖c(xᵏ)‖ > η``;
+- `β₀::T = T(1)`: see `β₁`;
+- `β₁::T = T(1 // 10)`: ``η = max(β₀ / al_nlp.μ^β₁, ϵp)`` if ``‖c(xᵏ)‖ > η``;
 - `μ_up::T = T(10)`: Multiplicative factor of `μ` if not ``‖c(xᵏ)‖ > η``;
 - `subsolver_logger::AbstractLogger = NullLogger()`: logger passed to `tron`;
 - `subsolver_max_iter = typemax(Int)`: maximum number of iterations for the subsolver;
