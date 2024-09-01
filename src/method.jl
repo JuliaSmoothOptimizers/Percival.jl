@@ -375,10 +375,10 @@ function SolverCore.solve!(
 
   if verbose > 0
     @info log_header(
-      [:iter, :fx, :normgp, :normcx, :μ, :normy, :sumc, :inner_status, :iter_type],
-      [Int, Float64, Float64, Float64, Float64, Float64, Int, Symbol, Symbol],
+      [:iter, :fx, :normgp, :normcx, :μ, :normy, :η, :ω, :sumc, :inner_status, :iter_type],
+      [Int, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Int, Symbol, Symbol],
     )
-    @info log_row(Any[stats.iter, fx, normgp, normcx, al_nlp.μ, norm(y), counter_cost(nlp)])
+    @info log_row(Any[stats.iter, fx, normgp, normcx, al_nlp.μ, norm(y), η, ω, counter_cost(nlp)])
   end
 
   solved = normgp ≤ ϵd && normcx ≤ ϵp
@@ -474,6 +474,8 @@ function SolverCore.solve!(
           normcx,
           al_nlp.μ,
           norm(al_nlp.y),
+          η,
+          ω,
           counter_cost(nlp),
           inner_status,
           iter_type,
