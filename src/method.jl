@@ -94,7 +94,9 @@ For advanced usage, first define a `PercivalSolver` to preallocate the memory us
 - `μ::Real = T(10.0)`: Starting value of the penalty parameter;
 - `η₀::T = T(0.5)`: Starting value for the contraints tolerance of the subproblem;
 - `ω₀::T = T(1)`: Starting value for relative tolerance of the subproblem;
-- `α₁::T = T(9 // 10)`: ``η = max(1 / al_nlp.μ^α₁, ϵp)`` if ``‖c(xᵏ)‖ ≤ η``;
+- `ω_min::T = atol`: Smallest value for relative tolerance of the subproblem;
+- `α₁::T = T(9 // 10)`: ``η = max(η / al_nlp.μ^α₁, ϵp)`` if ``‖c(xᵏ)‖ ≤ η``;
+- `β₀::T = T(1)`: ``η = max(β₀ / al_nlp.μ^β₁, ϵp)`` if ``‖c(xᵏ)‖ > η``;
 - `β₁::T = T(1 // 10)`: ``η = max(1 / al_nlp.μ^β₁, ϵp)`` if ``‖c(xᵏ)‖ > η``;
 - `μ_up::T = T(10)`: Multiplicative factor of `μ` if not ``‖c(xᵏ)‖ > η``;
 - `subsolver_logger::AbstractLogger = NullLogger()`: logger passed to `tron`;
@@ -301,7 +303,9 @@ function SolverCore.solve!(
   μ::Real = T(10),
   η₀::T = T(1 // 2),
   ω₀::T = T(1),
+  ω_min::T = atol,
   α₁::T = T(9 // 10),
+  β₀::T = T(1),
   β₁::T = T(1 // 10),
   μ_up::T = T(10),
   max_iter::Int = 2000,
@@ -366,7 +370,7 @@ function SolverCore.solve!(
   ϵp = ctol
   # tolerance
   η = max(η₀, ϵp)
-  ω = ω₀
+  ω = max(ω₀, ω_min)
 
   set_iter!(stats, 0)
   start_time = time()
@@ -433,13 +437,13 @@ function SolverCore.solve!(
     iter_type = if normcx <= η
       update_y!(al_nlp)
       η = max(η / al_nlp.μ^α₁, ϵp)
-      ω /= al_nlp.μ
+      ω = max(ω / al_nlp.μ, ω_min)
       set_constraint_multipliers!(stats, al_nlp.y)
       :update_y
     else
       update_μ!(al_nlp, μ_up * al_nlp.μ)
-      η = max(1 / al_nlp.μ^β₁, ϵp)
-      ω = 1 / al_nlp.μ
+      η = max(β₀ / al_nlp.μ^β₁, ϵp)
+      ω = max(1 / al_nlp.μ, ω_min)
       :update_μ
     end
 
