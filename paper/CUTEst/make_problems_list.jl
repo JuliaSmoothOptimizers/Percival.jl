@@ -1,13 +1,14 @@
-using Pkg; Pkg.activate("")
+using Pkg
+path = dirname(@__FILE__)
+Pkg.activate(path)
 using CUTEst
 
-nmax = 10000
+nmax = 10
 _pnames = CUTEst.select(
   max_var = nmax,
   min_con = 1,
   max_con = nmax,
   only_free_var = true,
-  only_equ_con = true,
   objtype = 3:6,
 )
 
@@ -15,7 +16,7 @@ _pnames = CUTEst.select(
 pnamesNE = _pnames[findall(x -> occursin(r"NE\b", x), _pnames)]
 pnames = setdiff(_pnames, pnamesNE)
 
-open("list_problems.dat", "w") do io
+open("list_problems_$nmax.dat", "w") do io
   for name in pnames
     write(io, name * "\n")
   end
