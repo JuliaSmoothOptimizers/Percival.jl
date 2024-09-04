@@ -3,7 +3,7 @@ path = dirname(@__FILE__)
 Pkg.activate(path)
 using CUTEst
 
-nmax = 10
+nmax = 100
 _pnames = CUTEst.select(
   max_var = nmax,
   min_con = 1,

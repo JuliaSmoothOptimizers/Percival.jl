@@ -4,12 +4,12 @@ Pkg.activate(path)
 using CUTEst
 using NLPModels, NLPModelsIpopt, Percival, SolverBenchmark
 
-nmax = 10
-problems = readlines("list_problems_$nmax.dat")
+nmax = 100
+problems = readlines(joinpath(@__DIR__, "list_problems_$nmax.dat"))
 cutest_problems = (CUTEstModel(p) for p in problems)
 
-max_time = 300.0 #20 minutes
-tol = 1e-5
+max_time = 420.0 #20 minutes
+tol = 1e-2
 
 # Percival's parameters
 # My logic is:
@@ -20,11 +20,11 @@ tol = 1e-5
 # gasoil: |c(x0)| = 1.3 (peut-être avec plus de temps - plutôt inity=false)
 # marine: |c(x0)| = 1.5e4 (badly scaled)
 params = Dict(
-:μ => 1000.0, # default: 10 // 1e3 looks interesting (with :η₀ => 1e-3 and :ω₀ => 1e-3)
+:μ => 10.0, # default: 10 // 1e3 looks interesting (with :η₀ => 1e-3 and :ω₀ => 1e-3)
 :μ_up => 10.0, # default: 10
 :inity => false, # default: false
-:η₀ => 0.001, # default: 0.5 Starting value for the contraints tolerance of the subproblem
-:ω₀ => 0.001,  # default: 1 Starting value for relative tolerance of the subproblem;
+:η₀ => 0.5, # default: 0.5 Starting value for the contraints tolerance of the subproblem
+:ω₀ => 1.0,  # default: 1 Starting value for relative tolerance of the subproblem;
 :ω_min => sqrt(eps()), #default: atol
 :α₁ => 0.9,  # default: 0.9 ``η = max(η / al_nlp.μ^α₁, ϵp)`` if ``‖c(xᵏ)‖ ≤ η``;
 :β₀ => 0.1, # default: 1
@@ -42,8 +42,8 @@ params = Dict(
 :μ₀ => 1e-2, #μ₀::T = T(1e-2): algorithm parameter in (0, 0.5).
 :μ₁ => 1.0, #μ₁::T = one(T): algorithm parameter in (0, +∞).
 :σ => 10.0, #σ::T = T(10)`: algorithm parameter in (1, +∞).
-:verbose => 0,
-:subsolver_verbose => 0,
+:verbose => 1,
+:subsolver_verbose => 1,
 )
 
 solvers = Dict(
@@ -62,7 +62,7 @@ solvers = Dict(
       max_time = max_time,
       max_iter = typemax(Int64),
       max_eval = typemax(Int64),
-      atol = tol, # = 0
+      atol = tol,
       ctol = tol,
       rtol = tol,
       μ = params[:μ],
@@ -78,7 +78,7 @@ solvers = Dict(
       σ  = params[:σ],
       increase_threshold = params[:increase_threshold],
       inity = params[:inity],
-      subsolver_max_cgiter = 2 * nlp.meta.nvar,
+      subsolver_max_cgiter = nlp.meta.nvar,
       subsolver_max_iter = params[:subsolver_max_iter],
       subsolver_verbose = params[:subsolver_verbose],
       verbose = params[:verbose],
@@ -88,7 +88,7 @@ solvers = Dict(
 stats = bmark_solvers(solvers, cutest_problems, skipif = nlp -> !nlp.meta.minimize)
 
 using Dates, JLD2
-name = "$(today())_CUTEst_$(nmax)_ipopt_percival"
+name = "$(today())_CUTEst_$(Int(-log10(tol)))_$(nmax)_ipopt_percival"
 @save "$name.jld2" stats max_time tol params
 
 #
