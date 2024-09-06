@@ -1,6 +1,8 @@
 using Pkg
 path = dirname(@__FILE__)
 Pkg.activate(path)
+Pkg.instantiate()
+Pkg.add(url="https://github.com/JuliaSmoothOptimizers/Percival.jl", rev="main")
 using CUTEst
 using NLPModels, NLPModelsIpopt, Percival, SolverBenchmark
 
@@ -8,8 +10,8 @@ nmax = 100
 problems = readlines(joinpath(@__DIR__, "list_problems_$nmax.dat"))
 cutest_problems = (CUTEstModel(p) for p in problems)
 
-max_time = 420.0 #20 minutes
-tol = 1e-2
+max_time = 1200.0 #20 minutes
+tol = 1e-5
 
 # Percival's parameters
 # My logic is:
