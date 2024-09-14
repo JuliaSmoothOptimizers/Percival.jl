@@ -6,14 +6,14 @@ Pkg.add(url="https://github.com/JuliaSmoothOptimizers/Percival.jl", rev="main")
 using CUTEst
 using NLPModels, NLPModelsIpopt, Percival, SolverBenchmark
 
-nmax = 100
+nmax = 10000
 problems = readlines(joinpath(@__DIR__, "list_problems_$nmax.dat"))
 cutest_problems = (CUTEstModel(p) for p in problems)
 
 max_time = 1200.0 #20 minutes
 tol = 1e-5
 
-# Percival's parameters
+# Percival parameters
 # My logic is:
 # η₀ = ω₀ = 1/μ
 # we solve chain |c(x0)|=3.7 with mu=1e3 (peu importe inity)
