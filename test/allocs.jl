@@ -64,8 +64,8 @@ if v"1.7" <= VERSION
       solver = PercivalSolver(nlp)
       stats = GenericExecutionStats(nlp)
       SolverCore.solve!(solver, nlp, stats)
-      reset!(solver)
-      reset!(nlp)
+      SolverCore.reset!(solver)
+      NLPModels.reset!(nlp)
       al = @wrappedallocs SolverCore.solve!(solver, nlp, stats)
       @test al == 0
     end

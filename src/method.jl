@@ -262,7 +262,7 @@ function SolverCore.reset!(solver::PercivalSolver, model::AbstractNLPModel)
 end
 
 function reinit!(al_nlp::AugLagModel{M, T, V}, model::M, fx::T, μ::T, x::V, y::V) where {M, T, V}
-  reset!(al_nlp)
+  NLPModels.reset!(al_nlp)
   al_nlp.store_Jv .= zero(T)
   al_nlp.store_Jtv .= zero(T)
   al_nlp.fx = fx
@@ -283,7 +283,7 @@ counter_cost(nlp) = neval_obj(nlp) + 2 * neval_grad(nlp)
 Specialize `SolverCore.reset!` function to percival's context.
 """
 function reset_subproblem!(solver::PercivalSolver{T, V}, model::AbstractNLPModel{T, V}) where {T, V}
-  reset!(solver.sub_solver, model)
+  SolverCore.reset!(solver.sub_solver, model)
 end
 
 function reset_subproblem!(
@@ -291,7 +291,7 @@ function reset_subproblem!(
   model::AugLagModel{M, T, V},
 ) where {T, V, Op, M, ST <: TronSolver{T, V}}
   solver.sub_solver.xc .= model.x
-  reset!(solver.sub_solver)
+  SolverCore.reset!(solver.sub_solver)
 end
 
 function SolverCore.solve!(
@@ -324,7 +324,7 @@ function SolverCore.solve!(
   verbose::Integer = 0,
   kwargs...,
 ) where {T, V}
-  reset!(stats)
+  SolverCore.reset!(stats)
   @lencheck nlp.meta.nvar x
   x = solver.x .= x
   gx = solver.gx
@@ -411,7 +411,7 @@ function SolverCore.solve!(
     model = subproblem_modifier(al_nlp)
     reset_subproblem!(solver, model)
     S = solver.sub_stats
-    reset!(S)
+    SolverCore.reset!(S)
     solve!(
       solver.sub_solver,
       model,
