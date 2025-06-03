@@ -161,7 +161,7 @@ mutable struct PercivalSolver{T, V, Op, M, ST} <: AbstractOptimizationSolver
   Jv::V
   Jtv::V
   Jx::Op
-  cgls_solver::CglsSolver{T, T, V}
+  cgls_workspace::CglsWorkspace{T, T, V}
   sub_pb::AugLagModel{M, T, V}
   sub_solver::ST
   sub_stats::GenericExecutionStats{T, V, V, Any}
@@ -185,7 +185,7 @@ function PercivalSolver(
 
   Jx = jac_op!(nlp, x, Jv, Jtv)
   Op = typeof(Jx)
-  cgls_solver = CglsSolver(Jx', gx)
+  cgls_workspace = CglsWorkspace(Jx', gx)
 
   sub_pb = AugLagModel(nlp, V(undef, ncon), T(0), x, T(0), V(undef, ncon))
   model = subproblem_modifier(sub_pb)
@@ -206,7 +206,7 @@ function PercivalSolver(
     Jv,
     Jtv,
     Jx,
-    cgls_solver,
+    cgls_workspace,
     sub_pb,
     sub_solver,
     sub_stats,
@@ -345,8 +345,8 @@ function SolverCore.solve!(
   # Lagrange multiplier
   y = solver.y
   if inity
-    cgls!(solver.cgls_solver, Jx', gx, verbose = cgls_verbose)
-    y = solver.cgls_solver.x
+    cgls!(solver.cgls_workspace, Jx', gx, verbose = cgls_verbose)
+    y = solver.cgls_workspace.x
   else
     y .= nlp.meta.y0
   end
