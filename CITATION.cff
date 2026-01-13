@@ -11,6 +11,8 @@ type: software
 authors:
   - given-names: Egmara
     family-names: Antunes dos Santos
+    affiliation: >-
+      Federal University of Paran\u00e1 - UFPR, Brazil.
   - given-names: Tangi
     family-names: Migot
     email: tangi.migot@gmail.com
