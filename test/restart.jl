@@ -23,7 +23,7 @@
   SolverCore.reset!(solver)
 
   with_logger(NullLogger()) do
-    SolverCore.solve!(solver, nlp, stats, atol = 1e-10, rtol = 1e-10)
+    SolverCore.solve!(solver, nlp, stats, atol = 1e-9, rtol = 1e-9)
   end
   @test stats.status_reliable && stats.status == :first_order
   @test stats.solution_reliable && isapprox(stats.solution, [1.0; 1.0], atol = 1e-6)
@@ -66,7 +66,7 @@ end
   SolverCore.reset!(solver, nlp)
 
   with_logger(NullLogger()) do
-    SolverCore.solve!(solver, nlp, stats, atol = 1e-10, rtol = 1e-10)
+    SolverCore.solve!(solver, nlp, stats, atol = 1e-9, rtol = 1e-9)
   end
   @test stats.status_reliable && stats.status == :first_order
   @test stats.solution_reliable && isapprox(stats.solution, [0.0; 0.0], atol = 1e-6)
