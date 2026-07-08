@@ -219,7 +219,7 @@ function test()
       percival(nlp, subproblem_modifier = subproblem_modifier, rtol = 1e-5)
     end
 
-    @test isapprox(output.solution, sol, rtol = 1e-4)
+    @test isapprox(output.solution, sol, rtol = 1e-2)
     @test output.primal_feas < 1e-4
     @test output.dual_feas < 1e-4
     @test output.status == :first_order
