@@ -214,15 +214,15 @@ function test()
     @test output.status == :first_order
 
     # LBFGS approximation of the augmented Lagrangian
-    output = with_logger(NullLogger()) do
-      subproblem_modifier = m -> NLPModelsModifiers.LBFGSModel(m, mem = lbfgs_mem)
-      percival(nlp, subproblem_modifier = subproblem_modifier, rtol = 1e-5)
-    end
+    # output = with_logger(NullLogger()) do
+    subproblem_modifier = m -> NLPModelsModifiers.LBFGSModel(m, mem = lbfgs_mem)
+    output = percival(nlp, subproblem_modifier = subproblem_modifier, rtol = 1e-5)
+    # end
 
+    @test output.status == :first_order
     @test isapprox(output.solution, sol, rtol = 1e-2)
     @test output.primal_feas < 1e-4
     @test output.dual_feas < 1e-4
-    @test output.status == :first_order
   end
 end
 
