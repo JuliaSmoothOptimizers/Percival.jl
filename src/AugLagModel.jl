@@ -40,8 +40,8 @@ mutable struct AugLagModel{M <: AbstractNLPModel, T <: AbstractFloat, V <: Abstr
   cx::V # save last constraint value of subsolver
   Fx::V
   μc_y::V # y - μ * cx
-  store_Jv::Vector{T}
-  store_Jtv::Vector{T}
+  store_Jv::V
+  store_Jtv::V
 end
 
 function AugLagModel(model::AbstractNLPModel{T, V}, y::V, μ::T, x::V, fx::T, cx::V) where {T, V}
@@ -56,6 +56,11 @@ function AugLagModel(model::AbstractNLPModel{T, V}, y::V, μ::T, x::V, fx::T, cx
     lvar = model.meta.lvar,
     uvar = model.meta.uvar,
     name = "AugLagModel-$(model.meta.name)",
+    # `NLPModelMeta`'s bound analysis calls `findall` on the bound vectors,
+    # which scalar-indexes GPU arrays. The subproblem solver works from
+    # `lvar`/`uvar` directly (projection), never the index sets, so skip it —
+    # this keeps `AugLagModel` usable with `V <: AbstractGPUArray`.
+    variable_bounds_analysis = false,
   )
 
   Fx = model isa AbstractNLSModel ? V(undef, model.nls_meta.nequ) : V(undef, 0)
@@ -71,8 +76,8 @@ function AugLagModel(model::AbstractNLPModel{T, V}, y::V, μ::T, x::V, fx::T, cx
     cx,
     Fx,
     isassigned(y) && isassigned(cx) ? y - μ * cx : similar(y),
-    zeros(T, ncon),
-    zeros(T, nvar),
+    fill!(V(undef, ncon), zero(T)),
+    fill!(V(undef, nvar), zero(T)),
   )
 end
 
