@@ -170,6 +170,7 @@ end
 function PercivalSolver(
   nlp::AbstractNLPModel{T, V};
   subproblem_modifier = identity,
+  subsolver = nothing,
   kwargs...,
 ) where {T, V}
   nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
@@ -189,7 +190,11 @@ function PercivalSolver(
 
   sub_pb = AugLagModel(nlp, V(undef, ncon), T(0), x, T(0), V(undef, ncon))
   model = subproblem_modifier(sub_pb)
-  sub_solver = if typeof(model) <: AbstractNLSModel
+  # `subsolver` lets the caller override the default trust-region subsolver,
+  # e.g. `subsolver = SPGSubSolver` for a GPU-compatible first-order solve.
+  sub_solver = if subsolver !== nothing
+    subsolver(model; kwargs...)
+  elseif typeof(model) <: AbstractNLSModel
     TronNLSSolver(model; kwargs...)
   else
     TronSolver(model; kwargs...)
@@ -239,9 +244,17 @@ const trustregion_keys = (
     )
   end
   subsolver_kwargs = Dict(kwargs)
+  # `subsolver` selects the subproblem solver type; it is consumed here (passed
+  # to `PercivalSolver`) rather than forwarded to the subsolver's `solve!`.
+  subsolver = pop!(subsolver_kwargs, :subsolver, nothing)
   subsolver_keys = intersect(keys(subsolver_kwargs), trustregion_keys)
   solver_kwargs = Dict(k => subsolver_kwargs[k] for k in subsolver_keys)
-  solver = PercivalSolver(nlp; subproblem_modifier = subproblem_modifier, solver_kwargs...)
+  solver = PercivalSolver(
+    nlp;
+    subproblem_modifier = subproblem_modifier,
+    subsolver = subsolver,
+    solver_kwargs...,
+  )
   sub_kwargs = copy(subsolver_kwargs)
   for k in subsolver_keys
     pop!(sub_kwargs, k)

@@ -232,6 +232,13 @@ include("restart.jl")
 
 include("callback.jl")
 
+include("spg_subsolver.jl")
+@testset "SPGSubSolver option" begin
+  test_spg_subsolver()
+  test_spg_subsolver_standalone()
+  test_gpu_safe_equality_classification()
+end
+
 @testset "Change TRON solver parameters" begin
   @testset "Test max_radius in TRON" begin
     max_radius = 0.00314
