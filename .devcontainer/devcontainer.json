@@ -1,6 +1,12 @@
 {
   "name": "Percival.jl",
-  "image": "julia:1.12-bookworm",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/julialang/devcontainer-features/julia:1": {
+      "channel": "1.12"
+    }
+  },
   "customizations": {
     "vscode": {
       "extensions": [
