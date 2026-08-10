@@ -214,10 +214,10 @@ function test()
     @test output.status == :first_order
 
     # LBFGS approximation of the augmented Lagrangian
-    # output = with_logger(NullLogger()) do
+    output = with_logger(NullLogger()) do
     subproblem_modifier = m -> NLPModelsModifiers.LBFGSModel(m, mem = lbfgs_mem)
-    output = percival(nlp, subproblem_modifier = subproblem_modifier, rtol = 1e-5)
-    # end
+      percival(nlp, subproblem_modifier = subproblem_modifier, rtol = 1e-5)
+    end
 
     @test output.status == :first_order
     @test isapprox(output.solution, sol, rtol = 1e-2)
