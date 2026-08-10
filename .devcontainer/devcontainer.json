@@ -1,0 +1,12 @@
+{
+  "name": "Percival.jl",
+  "image": "julia:1.10-bookworm",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "julialang.language-julia"
+      ]
+    }
+  },
+  "postCreateCommand": "julia --project=. -e 'using Pkg; Pkg.instantiate()'"
+}
