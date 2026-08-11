@@ -5,10 +5,26 @@ using Logging, SolverCore, SolverTools, NLPModels
 using JSOSolvers, Krylov
 import SolverCore.solve!
 
+# GPU-safe replacement for `NLPModels.equality_constrained`. When bound
+# analysis is enabled the precomputed `jfix` index set is used (as upstream);
+# otherwise the fallback compares the bound vectors on the CPU. NLPModels'
+# fallback instead does `all(x -> x[1] == x[2], zip(lcon, ucon))`, which
+# scalar-indexes GPU bound vectors — the analysis has to be disabled for GPU
+# models precisely because it itself scalar-indexes, so we cannot rely on
+# `jfix`. The bound vectors are small metadata, so the host transfer is cheap.
+function _is_equality_constrained(nlp::AbstractNLPModel)
+  meta = nlp.meta
+  get_ncon(meta) == 0 && return false
+  if get_constraint_bounds_analysis(meta)
+    return length(get_jfix(meta)) == get_ncon(meta)
+  end
+  return all(Vector(get_lcon(meta)) .== Vector(get_ucon(meta)))
+end
+
 function percival(nlp::AbstractNLPModel; kwargs...)
   if unconstrained(nlp) || bound_constrained(nlp)
     return percival(Val(:tron), nlp; kwargs...)
-  elseif equality_constrained(nlp)
+  elseif _is_equality_constrained(nlp)
     return percival(Val(:equ), nlp; kwargs...)
   else # has inequalities
     return percival(Val(:ineq), nlp; kwargs...)
@@ -233,7 +249,7 @@ const trustregion_keys = (
   if !(nlp.meta.minimize)
     error("Percival only works for minimization problem")
   end
-  if nlp.meta.ncon == 0 || !equality_constrained(nlp)
+  if nlp.meta.ncon == 0 || !_is_equality_constrained(nlp)
     error(
       "percival(::Val{:equ}, nlp) should only be called for equality-constrained problems with bounded variables. Use percival(nlp)",
     )
