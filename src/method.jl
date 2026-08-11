@@ -154,10 +154,12 @@ stats = solve!(solver, nlp, stats)
 mutable struct PercivalSolver{T, V, Op, M, ST} <: AbstractOptimizationSolver
   x::V
   xc::V
+  step::V
   y::V
   gx::V
   gL::V
   gp::V
+  gn::V
   Jv::V
   Jtv::V
   Jx::Op
@@ -175,10 +177,12 @@ function PercivalSolver(
   nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
   x = V(undef, nvar)
   xc = V(undef, nvar)
+  step = isa(nlp, QuasiNewtonModel) ? V(undef, nvar) : V(undef, 0)
   y = V(undef, ncon)
   gx = V(undef, nvar)
   gL = V(undef, nvar)
   gp = V(undef, nvar)
+  gn = isa(nlp, QuasiNewtonModel) ? V(undef, nvar) : V(undef, 0)
 
   Jv = V(undef, ncon)
   Jtv = V(undef, nvar)
@@ -199,10 +203,12 @@ function PercivalSolver(
   return PercivalSolver{T, V, Op, typeof(nlp), ST}(
     x,
     xc,
+    step,
     y,
     gx,
     gL,
     gp,
+    gn,
     Jv,
     Jtv,
     Jx,
@@ -253,6 +259,7 @@ function SolverCore.reset!(solver::PercivalSolver)
   solver
 end
 function SolverCore.reset!(solver::PercivalSolver, model::AbstractNLPModel)
+  @assert (length(solver.gn) == 0) || isa(nlp, QuasiNewtonModel)
   solver.Jx = jac_op!(model, solver.x, solver.Jv, solver.Jtv)
   solver.sub_pb.model = model
   solver.sub_pb.meta.x0 .= model.meta.x0
@@ -327,7 +334,7 @@ function SolverCore.solve!(
   SolverCore.reset!(stats)
   @lencheck nlp.meta.nvar x
   x = solver.x .= x
-  gx = solver.gx
+  gx, gn, step = solver.gx, solver.gn, solver.step
   x .= max.(nlp.meta.lvar, min.(x, nlp.meta.uvar))
 
   al_nlp = solver.sub_pb
@@ -376,6 +383,11 @@ function SolverCore.solve!(
   start_time = time()
   set_time!(stats, 0.0)
   rem_eval = max_eval
+
+  if isa(nlp, QuasiNewtonModel)
+    gn .= gx
+    step .= x
+  end
 
   if verbose > 0
     @info log_header(
@@ -467,6 +479,16 @@ function SolverCore.solve!(
     jtprod!(nlp, al_nlp.x, al_nlp.cx, solver.Jtv)
     penalty_too_large = al_nlp.μ > 1 / eps(T)
     infeasible = penalty_too_large && norm(solver.Jtv) < √ϵp * normcx
+
+    if isa(nlp, QuasiNewtonModel)
+      step .-= al_nlp.x
+      step .*= -1  # step = xₖ₊₁ - xₖ
+      gn .-= gL
+      gn .*= -1  # gn = ∇f(xₖ₊₁) - ∇f(xₖ)
+      push!(nlp, step, gn)
+      gn .= gL
+      step .= al_nlp.x
+    end
 
     verbose > 0 &&
       mod(stats.iter, verbose) == 0 &&

@@ -55,16 +55,28 @@ function test()
     @test output.dual_feas < 1e-6
     @test output.status == :first_order
 
-    # LBFGS approximation of the augmented Lagrangian
-    output = with_logger(NullLogger()) do
-      subproblem_modifier = m -> NLPModelsModifiers.LBFGSModel(m, mem = lbfgs_mem)
-      percival(nlp, subproblem_modifier = subproblem_modifier, rtol = 1e-4)
+    @testset "LBFGS approximation of the augmented Lagrangian $name" begin
+      output = with_logger(NullLogger()) do
+        subproblem_modifier = m -> NLPModelsModifiers.LBFGSModel(m, mem = lbfgs_mem)
+        percival(nlp, subproblem_modifier = subproblem_modifier, rtol = 1e-4)
+      end
+
+      @test isapprox(output.solution, sol, rtol = 1e-3)
+      @test output.primal_feas < 1e-3
+      @test output.dual_feas < 1e-3
+      @test output.status == :first_order
     end
 
-    @test isapprox(output.solution, sol, rtol = 1e-3)
-    @test output.primal_feas < 1e-3
-    @test output.dual_feas < 1e-3
-    @test output.status == :first_order
+    @testset "LBFGS approximation of the model $name" begin
+      output = with_logger(NullLogger()) do
+        percival(LBFGSModel(nlp), rtol = 1e-4)
+      end
+
+      @test isapprox(output.solution, sol, rtol = 1e-3)
+      @test output.primal_feas < 1e-3
+      @test output.dual_feas < 1e-3
+      @test output.status == :first_order
+    end
   end
 
   @testset "Small equality bound-constrained problems $name" for (
